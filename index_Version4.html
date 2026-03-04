@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AR Model Viewer</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  
+  <style>
+    :root{
+      --bg:#f5f6f7; --text:#111; --muted:#555; --card:#fff; --border:#e6e6e6;
+      --btn2:#2d7d46;
+    }
+    * { box-sizing: border-box; }
+    body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
+    h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
+    
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding: 20px; margin: 14px auto;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+    }
+    
+    .uploadBox{
+      background: #f0f8f4; border: 2px dashed var(--btn2);
+      border-radius: 12px; padding: 40px 20px; text-align: center;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .uploadBox:hover{ background: #e8f5f0; }
+    .uploadBox.dragover{ background: #d4ead8; border-color: #1a5a35; border-width: 3px; }
+    .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
+    .uploadBox input{ display: none; }
+    
+    .status{
+      padding: 12px; margin: 10px 0; border-radius: 6px;
+      display: none; font-weight: 600; text-align: center;
+    }
+    .status.success{
+      display: block; background: #d4edda; color: #155724;
+    }
+    .status.error{
+      display: block; background: #f8d7da; color: #721c24;
+    }
+    .status.loading{
+      display: block; background: #d1ecf1; color: #0c5460;
+    }
+    
+    .viewerBox{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding: 12px; margin-top: 18px;
+      display: none;
+    }
+    .viewerBox.active{ display: block; }
+    
+    model-viewer{
+      width: 100%; height: 62vh; min-height: 380px;
+      background:#fff; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    
+    .viewerBar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      justify-content:center; margin: 12px 0 0;
+    }
+
+    button.ui{
+      border:1px solid var(--border);
+      background:#fff;
+      color:#111;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor:pointer;
+    }
+    button.ui:hover{ background:#f0f0f0; }
+
+    .hint{
+      margin: 10px 0 0;
+      color:var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>🎨 AR Model Viewer</h1>
+    <p>Lade dein GLB oder USDZ Modell hoch und betrachte es in 3D!</p>
+
+    <!-- UPLOAD -->
+    <div class="card">
+      <h2>📤 Modell hochladen</h2>
+      <div class="uploadBox" id="uploadBox">
+        <p>📁 Datei hierher ziehen oder klicken</p>
+        <p style="font-size: 12px; margin-top: 8px; color: #888;">Unterstützt: .glb, .usdz, .gltf</p>
+        <input type="file" id="fileInput" accept=".glb,.usdz,.gltf" />
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <!-- VIEWER -->
+    <div class="card viewerBox" id="viewerBox">
+      <h2>🎬 3D Viewer</h2>
+      <model-viewer id="mv"
+        alt="3D Model"
+        camera-controls
+        auto-rotate
+        rotation-per-second="18deg"
+        shadow-intensity="0.6"
+        exposure="1.0"
+        ar
+        ar-modes="webxr scene-viewer quick-look">
+      </model-viewer>
+
+      <div class="viewerBar">
+        <button class="ui" id="btnReset">↩️ Ansicht zurücksetzen</button>
+        <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
+        <button class="ui" id="btnAR">✨ AR starten (wenn möglich)</button>
+      </div>
+
+      <p class="hint">
+        💡 Tipp: Mit der Maus/Finger drehen, zoomen mit Scroll/Pinch. AR funktioniert auf iPhones und unterstützten Android-Geräten.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+    const status = document.getElementById('status');
+    const viewerBox = document.getElementById('viewerBox');
+    const mv = document.getElementById('mv');
+
+    // Upload via Klick
+    uploadBox.addEventListener('click', () => fileInput.click());
+
+    // Drag & Drop
+    uploadBox.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', () => {
+      uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadBox.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    // File Input Change
+    fileInput.addEventListener('change', (e) => {
+      handleFile(e.target.files[0]);
+    });
+
+    // Datei laden
+    function handleFile(file) {
+      if (!file) return;
+
+      // Dateiformat prüfen
+      if (!['glb', 'usdz', 'gltf'].some(ext => file.name.endsWith(ext))) {
+        showStatus('❌ Nur .glb, .usdz oder .gltf Dateien erlaubt!', 'error');
+        return;
+      }
+
+      showStatus('⏳ Wird geladen...', 'loading');
+
+      // FileReader verwenden
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        // Blob-URL erstellen
+        const blobUrl = URL.createObjectURL(file);
+        
+        // Modell anzeigen
+        mv.src = blobUrl;
+        viewerBox.classList.add('active');
+        
+        showStatus(`✅ ${file.name} erfolgreich geladen!`, 'success');
+      };
+
+      reader.onerror = () => {
+        showStatus('❌ Fehler beim Lesen der Datei!', 'error');
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    function showStatus(message, type) {
+      status.textContent = message;
+      status.className = `status ${type}`;
+    }
+
+    // Reset-Button
+    document.getElementById('btnReset').addEventListener('click', () => {
+      mv.cameraOrbit = '0deg 75deg 2.5m';
+      mv.fieldOfView = '30deg';
+    });
+
+    // Fullscreen-Button
+    document.getElementById('btnFullscreen').addEventListener('click', async () => {
+      if (!document.fullscreenElement) {
+        await mv.requestFullscreen?.();
+      } else {
+        await document.exitFullscreen?.();
+      }
+    });
+
+    // AR-Button
+    document.getElementById('btnAR').addEventListener('click', async () => {
+      if (typeof mv.activateAR === 'function') {
+        try { await mv.activateAR(); }
+        catch(e) { alert('AR konnte nicht gestartet werden. Nutze die 3D-Ansicht.'); }
+      } else {
+        alert('AR wird in diesem Browser/auf diesem Gerät nicht unterstützt.');
+      }
+    });
+
+    // Auto-rotate stoppen bei Interaktion
+    mv.addEventListener('interaction-start', () => mv.autoRotate = false);
+    mv.addEventListener('interaction-end', () => mv.autoRotate = true);
+  </script>
+</body>
+</html>
