@@ -1,0 +1,37 @@
+<!-- Im Viewer-Bereich -->
+<div id="viewer" class="viewerBox">
+  <div style="margin-bottom: 12px;">
+    <label>Wähle ein Modell:</label>
+    <select id="modelSelect" style="padding: 8px; border-radius: 8px;">
+      <option value="Android.glb">Android Modell</option>
+      <option value="Iphone.usdz">iPhone Modell</option>
+      <option value="MyCustomModel.glb">Mein Custom Modell</option>
+      <!-- Weitere Modelle hier hinzufügen -->
+    </select>
+  </div>
+  
+  <model-viewer id="mv"
+    src="Android.glb"
+    alt="3D Modell"
+    camera-controls
+    auto-rotate
+    rotation-per-second="18deg"
+    shadow-intensity="0.6"
+    exposure="1.0"
+    ar
+    ar-modes="webxr scene-viewer quick-look">
+  </model-viewer>
+  <!-- ... -->
+</div>
+
+<script>
+  const mv = document.getElementById('mv');
+  const modelSelect = document.getElementById('modelSelect');
+  
+  // Modell wechseln beim Dropdown-Change
+  modelSelect.addEventListener('change', (e) => {
+    mv.src = e.target.value;
+  });
+  
+  // Existierende Button-Handler...
+</script>

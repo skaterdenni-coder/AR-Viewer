@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Produkt in AR & 3D erleben</title>
+
+  <!-- Model Viewer (3D im Browser + AR auf kompatiblen Geräten) -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#f5f6f7; --text:#111; --muted:#555; --card:#fff; --border:#e6e6e6;
+      --btn:#111; --btnText:#fff; --btn2:#2d7d46; --btn3:#2b2b2b;
+    }
+    body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
+    h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; letter-spacing:-.5px; }
+    .sub{ margin:0 auto 18px; max-width: 780px; color:var(--muted); line-height:1.45; font-size:16px; }
+
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding: 14px 16px; margin: 14px auto; text-align:left;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+    }
+    .card h2{ margin:0 0 8px; font-size:18px; }
+    .card p{ margin:0; color:var(--muted); line-height:1.45; font-size:14.5px; }
+
+    .btnRow{ display:grid; grid-template-columns: 1fr; gap: 12px; margin: 18px 0 10px; }
+    .btn{
+      display:block; width:100%; text-decoration:none; text-align:center;
+      padding: 16px 14px; border-radius: 12px; font-weight: 800; font-size: 16px;
+    }
+    .primary{ background:var(--btn); color:var(--btnText); }
+    .green{ background:var(--btn2); color:var(--btnText); }
+    .dark{ background:var(--btn3); color:var(--btnText); }
+    .mini{ margin-top: 8px; color:var(--muted); font-size: 12.8px; }
+
+    .viewerBox{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding: 12px; margin-top: 18px;
+    }
+
+    /* Model Selector Styles */
+    .modelSelector{
+      display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+      align-items: center; justify-content: center;
+    }
+    .modelSelector label{ 
+      font-weight: 700; color:var(--text);
+    }
+    .modelSelector select{
+      padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 14px; font-weight: 600;
+      background: var(--card); color: var(--text); cursor: pointer;
+      min-width: 200px;
+    }
+    .modelSelector select:hover{
+      border-color: var(--btn);
+    }
+    .modelInfo{
+      font-size: 12px; color: var(--muted);
+      text-align: center; margin-top: 8px;
+    }
+
+    model-viewer{
+      width: 100%;
+      height: 62vh;
+      min-height: 380px;
+      background:#fff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      touch-action: pan-y;
+    }
+
+    .viewerBar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      justify-content:center;
+      margin: 12px 0 0;
+    }
+
+    button.ui{
+      border:1px solid var(--border);
+      background:#fff;
+      color:#111;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor:pointer;
+    }
+    button.ui:hover{ background:#f0f0f0; }
+
+    .hint{
+      margin: 10px 0 0;
+      color:var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .instructionCard{
+      background: #f0f8f4; border-left: 4px solid var(--btn2);
+      padding: 14px; margin: 12px auto; text-align: left; border-radius: 8px;
+    }
+    .instructionCard h3{ margin: 0 0 6px; font-size: 14px; color: var(--btn2); }
+    .instructionCard p{ margin: 4px 0; font-size: 13px; color: var(--muted); }
+    .instructionCard code{ 
+      background: #fff; padding: 2px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 12px;
+    }
+
+    @media (min-width: 820px){
+      .btnRow{ grid-template-columns: 1fr 1fr; }
+      .btnRow .wide{ grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h1>Produkt in AR & 3D erleben</h1>
+    <p class="sub">
+      Auf <b>iPhone & Android</b> kannst du das Produkt <b>in AR im Raum platzieren</b> (wenn unterstützt) oder <b>in 3D drehen</b>.
+      Auf <b>Windows/Mac</b> und <b>Meta Quest</b> gibt es eine <b>interaktive 3D-Ansicht im Browser</b>.
+    </p>
+
+    <div class="card">
+      <h2>📱 Smartphone (iPhone / Android)</h2>
+      <p>
+        iPhone: öffnet AR Quick Look (AR + 3D). Android: je nach Gerät/Browser AR/3D, alternativ unten die 3D-Ansicht.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>💻 Desktop (Windows & Mac)</h2>
+      <p>
+        3D-Ansicht im Browser: drehen, zoomen, Details prüfen (Maus/Trackpad).
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>🥽 Meta Quest 3</h2>
+      <p>
+        3D im Quest Browser (WebXR). Wenn <b>Handtracking</b> aktiv ist, klappt oft drehen/zoomen per Hand/Pinch.
+        „Greifen" wie in einer App ist browserabhängig – aber diese Seite ist darauf optimiert.
+      </p>
+    </div>
+
+    <div class="btnRow">
+      <a class="btn primary" href="Iphone.usdz">📱 iPhone – AR / 3D öffnen</a>
+      <a class="btn green" href="Android.glb">🤖 Android – AR / 3D öffnen</a>
+      <a class="btn dark wide" href="#viewer">💻🥽 Windows / Mac / Quest – 3D Viewer</a>
+    </div>
+
+    <p class="mini">
+      Tipp: Wenn AR auf Android nicht automatisch startet, nutze unten den 3D Viewer (funktioniert überall).
+    </p>
+
+    <div id="viewer" class="viewerBox">
+      <!-- Model Selector -->
+      <div class="modelSelector">
+        <label for="modelSelect">🎯 Wähle ein Modell:</label>
+        <select id="modelSelect">
+          <option value="Android.glb">📱 Android Modell</option>
+          <option value="Iphone.usdz">🍎 iPhone Modell</option>
+        </select>
+      </div>
+      <div class="modelInfo" id="modelInfo">Android.glb geladen</div>
+
+      <!-- 3D Viewer -->
+      <model-viewer id="mv"
+        src="Android.glb"
+        alt="3D Modell"
+        camera-controls
+        auto-rotate
+        rotation-per-second="18deg"
+        shadow-intensity="0.6"
+        exposure="1.0"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        xr-session-init='{"requiredFeatures":["local-floor"],"optionalFeatures":["hand-tracking","bounded-floor","layers"]}'>
+      </model-viewer>
+
+      <!-- Control Buttons -->
+      <div class="viewerBar">
+        <button class="ui" id="btnReset">↩️ Ansicht zurücksetzen</button>
+        <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
+        <button class="ui" id="btnAR">✨ AR starten (wenn möglich)</button>
+      </div>
+
+      <!-- Instructions -->
+      <p class="hint">
+        <b>Quest 3:</b> Öffne die Seite im Quest Browser. Aktiviere Handtracking am Headset (Einstellungen → Bewegung/Handtracking).
+        Dann klappt meist drehen/zoomen per Hand/Pinch. <br/>
+        <b>„4K":</b> Schärfe hängt vor allem von Texturen im GLB ab (2K–4K Texturen + saubere Kompression).
+      </p>
+
+      <!-- Add Models Instructions -->
+      <div class="instructionCard">
+        <h3>➕ Neue Modelle hinzufügen</h3>
+        <p>
+          1️⃣ Lade dein GLB/USDZ-Modell ins Repository-Root hoch (z.B. <code>MyModel.glb</code>)<br/>
+          2️⃣ Öffne <code>index.html</code> und füge eine neue Option im Select-Menü hinzu:<br/>
+          <code>&lt;option value="MyModel.glb"&gt;🎨 Mein Modell&lt;/option&gt;</code><br/>
+          3️⃣ Speichere und aktualisiere die Seite – schon ist dein Modell verfügbar!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const mv = document.getElementById('mv');
+    const modelSelect = document.getElementById('modelSelect');
+    const modelInfo = document.getElementById('modelInfo');
+
+    // Modell wechseln
+    modelSelect.addEventListener('change', (e) => {
+      const modelFile = e.target.value;
+      const selectedText = e.target.options[e.target.selectedIndex].text;
+      
+      mv.src = modelFile;
+      modelInfo.textContent = `${selectedText} geladen`;
+      
+      // Auto-rotate zurücksetzen
+      mv.autoRotate = true;
+    });
+
+    // Reset-Button
+    document.getElementById('btnReset').addEventListener('click', () => {
+      mv.cameraOrbit = '0deg 75deg 2.5m';
+      mv.fieldOfView = '30deg';
+    });
+
+    // Fullscreen-Button
+    document.getElementById('btnFullscreen').addEventListener('click', async () => {
+      if (!document.fullscreenElement) {
+        await mv.requestFullscreen?.();
+      } else {
+        await document.exitFullscreen?.();
+      }
+    });
+
+    // AR-Button
+    document.getElementById('btnAR').addEventListener('click', async () => {
+      if (typeof mv.activateAR === 'function') {
+        try { await mv.activateAR(); }
+        catch(e) { alert('AR konnte nicht gestartet werden. Nutze die 3D-Ansicht.'); }
+      } else {
+        alert('AR wird in diesem Browser/auf diesem Gerät nicht unterstützt. Nutze die 3D-Ansicht.');
+      }
+    });
+
+    // Auto-rotate kontrollieren
+    mv.addEventListener('interaction-start', () => mv.autoRotate = false);
+    mv.addEventListener('interaction-end', () => mv.autoRotate = true);
+  </script>
+</body>
+</html>
