@@ -3,91 +3,103 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR Viewer & Share</title>
-
-  <!-- Google Model Viewer -->
+  <title>Snap2XR | AR Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
+  
   <style>
-    :root {
-      --bg: #f5f6f7; --text: #111; --muted: #555; --card: #fff; --border: #e6e6e6;
-      --btn2: #2d7d46; --accent: #ff8c00;
+    :root{
+      --bg:#f5f6f7; --text:#111; --muted:#555; --card:#fff; --border:#e6e6e6;
+      --btn2:#2d7d46;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px; text-align: center; }
-    h1 { margin: 10px 0; font-size: 32px; font-weight: 800; color: #004a99; }
+    body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
+    h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
     
-    .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-      padding: 20px; margin: 14px auto; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    .card{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding: 20px; margin: 14px auto;
+      box-shadow: 0 1px 0 rgba(0,0,0,.03);
     }
     
-    .uploadBox {
+    .uploadBox{
       background: #f0f8f4; border: 2px dashed var(--btn2);
-      border-radius: 12px; padding: 30px; text-align: center;
-      cursor: pointer; transition: 0.3s;
+      border-radius: 12px; padding: 40px 20px; text-align: center;
+      cursor: pointer; transition: all 0.3s;
     }
-    .uploadBox:hover { background: #e8f5f0; }
-    #fileInput { display: none; }
+    .uploadBox:hover{ background: #e8f5f0; }
+    .uploadBox.dragover{ background: #d4ead8; border-color: #1a5a35; border-width: 3px; }
+    .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
+    .uploadBox input{ display: none; }
     
-    .status {
-      padding: 12px; margin: 10px 0; border-radius: 8px;
-      display: none; font-weight: 600; font-size: 14px;
+    .status{
+      padding: 12px; margin: 10px 0; border-radius: 6px;
+      display: none; font-weight: 600; text-align: center;
+      word-break: break-all;
     }
-    .status.loading { display: block; background: #e3f2fd; color: #004a99; }
-    .status.success { display: block; background: #d4edda; color: #155724; }
-    .status.error { display: block; background: #f8d7da; color: #721c24; }
+    .status.success{ display: block; background: #d4edda; color: #155724; }
+    .status.error{ display: block; background: #f8d7da; color: #721c24; }
+    .status.loading{ display: block; background: #d1ecf1; color: #0c5460; }
     
-    .share-container { display: none; margin-top: 15px; padding: 15px; background: #fffde7; border-radius: 10px; border: 1px solid #fff59d; }
-    .share-link { font-size: 13px; color: #004a99; word-break: break-all; font-weight: bold; }
+    .viewerBox{
+      background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding: 12px; margin-top: 18px;
+      display: none;
+    }
+    .viewerBox.active{ display: block; }
+    
+    model-viewer{
+      width: 100%; height: 62vh; min-height: 380px;
+      background:#fff; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    
+    .viewerBar{
+      display:flex; gap:10px; flex-wrap:wrap;
+      justify-content:center; margin: 12px 0 0;
+    }
 
-    .viewerBox { display: none; margin-top: 18px; }
-    .viewerBox.active { display: block; }
-    
-    model-viewer {
-      width: 100%; height: 60vh; min-height: 350px;
-      background: #fff; border-radius: 12px; border: 1px solid var(--border);
+    button.ui{
+      border:1px solid var(--border); background:#fff; color:#111;
+      border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor:pointer;
     }
-    
-    .viewerBar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
-    .ui-btn {
-      border: 1px solid var(--border); background: #fff; color: #111;
-      border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer;
-    }
-    .ui-btn.primary { background: var(--btn2); color: #fff; border: none; }
+    button.ui:hover{ background:#f0f0f0; }
 
-    body.app-mode #uploadCard { display: none; }
+    .hint{ margin: 10px 0 0; color:var(--muted); font-size: 13px; line-height: 1.35; }
+
+    /* Stil für den generierten Link-Kasten */
+    .shareLinkBox {
+      background: #f9f9f9; border: 1px solid #ccc; padding: 10px;
+      margin-top: 10px; border-radius: 8px; font-family: monospace;
+      font-size: 12px; color: #004a99; cursor: pointer;
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <h1>Snap2XR Viewer</h1>
-    
-    <div id="status" class="status"></div>
+    <h1>AR Model Viewer</h1>
+    <p>Lade dein GLB Modell hoch oder betrachte einen geteilten Link!</p>
 
-    <!-- UPLOAD CARD -->
+    <!-- UPLOAD BEREICH (Immer sichtbar für Person A und B) -->
     <div class="card" id="uploadCard">
+      <h2>📤 Modell hochladen</h2>
       <div class="uploadBox" id="uploadBox">
-        <p><strong>📁 Modell hochladen & Link erstellen</strong></p>
-        <p style="font-size: 12px; color: #666;">Wähle eine .glb Datei aus</p>
+        <p>📁 Datei hierher ziehen oder klicken</p>
+        <p style="font-size: 12px; margin-top: 8px; color: #888;">Unterstützt: .glb (Link ist 24h gültig)</p>
         <input type="file" id="fileInput" accept=".glb" />
       </div>
-      
-      <div id="shareSection" class="share-container">
-        <p style="margin:0 0 8px; font-size:14px;">🚀 <strong>Dein Modell ist bereit zum Teilen:</strong></p>
-        <div id="shareLink" class="share-link"></div>
-        <button class="ui-btn" style="margin-top:10px; font-size:12px;" onclick="copyShareLink()">Link kopieren</button>
-      </div>
+      <div id="status" class="status"></div>
     </div>
 
-    <!-- VIEWER CARD -->
+    <!-- VIEWER BEREICH -->
     <div class="card viewerBox" id="viewerBox">
-      <model-viewer id="mv" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" shadow-intensity="1"></model-viewer>
+      <h2>🎬 3D Viewer</h2>
+      <model-viewer id="mv" camera-controls auto-rotate shadow-intensity="0.6" exposure="1.0" ar ar-modes="webxr scene-viewer quick-look"></model-viewer>
       <div class="viewerBar">
-        <button class="ui-btn" id="btnReset">↺ Reset</button>
-        <button class="ui-btn primary" id="btnAR">✨ AR Starten</button>
+        <button class="ui" id="btnReset">↩️ Reset</button>
+        <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
+        <button class="ui" id="btnAR">✨ AR starten</button>
       </div>
     </div>
   </div>
@@ -96,96 +108,91 @@
     const mv = document.getElementById('mv');
     const viewerBox = document.getElementById('viewerBox');
     const status = document.getElementById('status');
-    const shareSection = document.getElementById('shareSection');
-    const shareLinkDiv = document.getElementById('shareLink');
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
 
-    function showStatus(msg, type) {
-      status.innerText = msg;
+    function showStatus(message, type) {
+      status.textContent = message;
       status.className = `status ${type}`;
+      status.style.display = 'block';
     }
 
-    // --- LOGIK: LADEN BEIM SEITENAUFRUF ---
-    async function checkUrlForModel() {
+    // 1. Beim Laden: Prüfen ob ein Modell geteilt wurde (?model=...)
+    window.addEventListener('load', () => {
       const params = new URLSearchParams(window.location.search);
       const modelUrl = params.get('model');
-
       if (modelUrl) {
-        showStatus('⏳ Lade geteiltes Modell...', 'loading');
+        showStatus('⏳ Geteiltes Modell wird geladen...', 'loading');
         mv.src = modelUrl;
         viewerBox.classList.add('active');
-        document.getElementById('uploadCard').style.display = 'none';
-        mv.addEventListener('load', () => showStatus('✅ Modell geladen', 'success'));
+        mv.addEventListener('load', () => showStatus('✅ Modell erfolgreich geladen!', 'success'));
       }
-    }
+    });
 
-    // --- LOGIK: UPLOAD ZU LITTERBOX ---
-    async function uploadToLitterbox(file) {
-      showStatus('🚀 Erstelle Cloud-Link (Litterbox)...', 'loading');
-      
+    // 2. Upload Logik: Zu Litterbox senden
+    uploadBox.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) handleUpload(e.target.files[0]);
+    });
+
+    async function handleUpload(file) {
+      if (!file.name.endsWith('.glb')) {
+        showStatus('❌ Bitte nur .glb Dateien!', 'error');
+        return;
+      }
+      showStatus('🚀 Erstelle Sharing-Link...', 'loading');
+
       const formData = new FormData();
       formData.append('reqtype', 'fileupload');
-      formData.append('time', '24h'); // Datei wird nach 24h gelöscht
+      formData.append('time', '24h');
       formData.append('fileToUpload', file);
 
       try {
-        // Litterbox API (CORS-Proxy kann nötig sein, falls direkter Browser-Upload geblockt wird)
         const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
           method: 'POST',
           body: formData
         });
-
         if (!response.ok) throw new Error('Upload fehlgeschlagen');
-        
         const fileUrl = await response.text();
-        if (!fileUrl.startsWith('http')) throw new Error('Ungültige Antwort');
+        
+        if (!fileUrl.startsWith('http')) throw new Error('Ungültige Server-Antwort');
 
-        // Modell im Viewer anzeigen
         mv.src = fileUrl;
         viewerBox.classList.add('active');
 
-        // Teilen-Link generieren
-        const shareUrl = `${window.location.origin}${window.location.pathname}?model=${encodeURIComponent(fileUrl)}`;
-        shareLinkDiv.innerText = shareUrl;
-        shareSection.style.display = 'block';
-        
-        showStatus('✅ Fertig! Link generiert.', 'success');
+        // Link zum Teilen generieren
+        const shareUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
+        status.innerHTML = `✅ Modell bereit! Link kopieren und an Person B senden:<br>
+                            <div class="shareLinkBox" onclick="copyLink('${shareUrl}')">${shareUrl}</div>
+                            <small style="display:block; margin-top:5px;">(Klicke auf den Link zum Kopieren)</small>`;
+        status.className = 'status success';
       } catch (err) {
-        console.error(err);
-        showStatus('❌ Cloud-Upload fehlgeschlagen. Modell wird nur lokal angezeigt.', 'error');
-        // Fallback: Lokal anzeigen
+        showStatus('❌ Fehler beim Cloud-Upload. Modell wird nur lokal angezeigt.', 'error');
         mv.src = URL.createObjectURL(file);
         viewerBox.classList.add('active');
       }
     }
 
-    // Datei-Auswahl Event
-    document.getElementById('uploadBox').onclick = () => document.getElementById('fileInput').click();
-    document.getElementById('fileInput').onchange = (e) => {
-      if (e.target.files[0]) uploadToLitterbox(e.target.files[0]);
+    window.copyLink = function(text) {
+      navigator.clipboard.writeText(text).then(() => alert('Link kopiert!'));
     };
 
-    function copyShareLink() {
-      navigator.clipboard.writeText(shareLinkDiv.innerText);
-      alert('Link kopiert!');
-    }
-
-    // Buttons
-    document.getElementById('btnReset').onclick = () => mv.cameraOrbit = '0deg 75deg 105%';
-    document.getElementById('btnAR').onclick = () => mv.activateAR();
-
-    window.onload = checkUrlForModel;
-
-    // Support für deine App-Injektion bleibt bestehen
+    // 3. Support für Snap2XR App (Base64 Injektion)
     window.receiveModelFromApp = function(base64Data) {
-      document.body.classList.add('app-mode');
+      showStatus('⏳ Modell aus App wird geladen...', 'loading');
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
       const blob = new Blob([new Uint8Array(byteNumbers)], {type: 'model/gltf-binary'});
       mv.src = URL.createObjectURL(blob);
       viewerBox.classList.add('active');
-      showStatus('✅ App-Modell geladen', 'success');
+      showStatus('✅ Modell aus Snap2XR geladen!', 'success');
     };
+
+    // Viewer Buttons
+    document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg 2.5m'; mv.fieldOfView = '30deg'; };
+    document.getElementById('btnFullscreen').onclick = () => { if (!document.fullscreenElement) mv.requestFullscreen?.(); else document.exitFullscreen?.(); };
+    document.getElementById('btnAR').onclick = () => { if (typeof mv.activateAR === 'function') mv.activateAR(); else alert('AR nicht unterstützt.'); };
   </script>
 </body>
 </html>
