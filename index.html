@@ -1,215 +1,109 @@
 <!doctype html>
 <html lang="de">
-<head><meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR Model Viewer</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />  <title>Snap2XR | AR Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  
   <style>
-    :root{
-      --bg:#f5f6f7; --text:#111; --muted:#555; --card:#fff; --border:#e6e6e6;
-      --btn2:#2d7d46;
+    :root {
+      --primary-blue: #004a99; --accent-orange: #ff8c00; --bg-light: #f8f9fa;
+      --text-dark: #1a1a1a; --card-bg: #ffffff; --border-color: #e0e0e0;
     }
     * { box-sizing: border-box; }
-    body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
-    .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
-    h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
-    
-    .card{
-      background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 20px; margin: 14px auto;
-      box-shadow: 0 1px 0 rgba(0,0,0,.03);
-    }
-    
-    .uploadBox{
-      background: #f0f8f4; border: 2px dashed var(--btn2);
-      border-radius: 12px; padding: 40px 20px; text-align: center;
-      cursor: pointer; transition: all 0.3s;
-    }
-    .uploadBox:hover{ background: #e8f5f0; }
-    .uploadBox.dragover{ background: #d4ead8; border-color: #1a5a35; border-width: 3px; }
-    .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
-    .uploadBox input{ display: none; }
-    
-    .status{
-      padding: 12px; margin: 10px 0; border-radius: 6px;
-      display: none; font-weight: 600; text-align: center;
-    }
-    .status.success{
-      display: block; background: #d4edda; color: #155724;
-    }
-    .status.error{
-      display: block; background: #f8d7da; color: #721c24;
-    }
-    .status.loading{
-      display: block; background: #d1ecf1; color: #0c5460;
-    }
-    
-    .viewerBox{
-      background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 12px; margin-top: 18px;
-      display: none;
-    }
-    .viewerBox.active{ display: block; }
-    
-    model-viewer{
-      width: 100%; height: 62vh; min-height: 380px;
-      background:#fff; border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-    
-    .viewerBar{
-      display:flex; gap:10px; flex-wrap:wrap;
-      justify-content:center; margin: 12px 0 0;
-    }
-
-    button.ui{
-      border:1px solid var(--border);
-      background:#fff;
-      color:#111;
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-weight: 700;
-      cursor:pointer;
-    }
-    button.ui:hover{ background:#f0f0f0; }
-
-    .hint{
-      margin: 10px 0 0;
-      color:var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-light); color: var(--text-dark); }
+    .container { max-width: 900px; margin: 0 auto; padding: 20px 15px; text-align: center; }
+    header { margin-bottom: 20px; }
+    .logo-text { font-size: 38px; font-weight: 800; margin: 0; background: linear-gradient(90deg, var(--primary-blue), var(--accent-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .card { background: var(--card-bg); border-radius: 20px; padding: 25px; margin-bottom: 20px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .status { padding: 12px; margin: 15px 0; border-radius: 10px; font-weight: 600; display: none; }
+    .status.loading { display: block; background: #fff3e0; color: #e65100; }
+    .status.success { display: block; background: #e8f5e9; color: #2e7d32; }
+    .status.error { display: block; background: #ffebee; color: #c62828; }
+    .viewer-container { display: none; }
+    .viewer-container.active { display: block; }
+    model-viewer { width: 100%; height: 65vh; min-height: 400px; background-color: #fff; border-radius: 15px; }
+    .controls-bar { display: flex; justify-content: center; gap: 12px; margin-top: 15px; flex-wrap: wrap; }
+    .btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: transform 0.1s; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .btn-outline { background: #fff; border: 1px solid var(--border-color); color: var(--text-dark); }
+    .btn-accent { background: var(--accent-orange); color: #fff; }
+    #upload-section { display: block; }
+    body.app-mode #upload-section { display: none; }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <h1>AR Model Viewer</h1>
-    <p>Lade dein GLB oder USDZ Modell hoch oder betrachte es direkt aus der App!</p>
+  <div class="container">
+    <header>
+      <h1 class="logo-text">Snap2XR</h1>
+      <p style="color:#666; margin:5px 0 20px;">3D Model Viewer</p>
+    </header>
 
-    <!-- UPLOAD (Wird ausgeblendet, wenn Modell aus App geladen wird) -->
-    <div class="card" id="uploadCard">
-      <h2>📤 Modell hochladen</h2>
-      <div class="uploadBox" id="uploadBox">
-        <p>📁 Datei hierher ziehen oder klicken</p>
-        <p style="font-size: 12px; margin-top: 8px; color: #888;">Unterstützt: .glb, .usdz, .gltf</p>
-        <input type="file" id="fileInput" accept=".glb,.usdz,.gltf" />
-      </div>
-    </div>
-    
     <div id="status" class="status"></div>
 
-    <!-- VIEWER -->
-    <div class="card viewerBox" id="viewerBox">
-      <h2> 3D Viewer</h2>
-      <model-viewer id="mv"
-        alt="3D Model"
-        camera-controls
-        auto-rotate
-        rotation-per-second="18deg"
-        shadow-intensity="0.6"
-        exposure="1.0"
-        ar
-        ar-modes="webxr scene-viewer quick-look">
-      </model-viewer>
+    <div class="card" id="upload-section">
+      <p>Warte auf Modell aus der App oder Datei auswählen...</p>
+      <input type="file" id="fileInput" accept=".glb" style="margin-top:10px;"/>
+    </div>
 
-      <div class="viewerBar">
-        <button class="ui" id="btnReset">↩️ Ansicht zurücksetzen</button>
-        <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
-        <button class="ui" id="btnAR"> AR starten (wenn möglich)</button>
+    <div class="viewer-container" id="viewer-container">
+      <div class="card">
+        <model-viewer id="main-viewer" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"></model-viewer>
+        <div class="controls-bar">
+          <button class="btn btn-outline" id="btn-reset">↺ Reset</button>
+          <button class="btn btn-accent" id="btn-ar">✨ AR Starten</button>
+        </div>
       </div>
-
-      <p class="hint">
-         Tipp: Mit der Maus/Finger drehen, zoomen mit Scroll/Pinch. AR funktioniert auf iPhones und unterstützten Android-Geräten.
-      </p>
     </div>
   </div>
 
-  <script>  const uploadBox = document.getElementById('uploadBox');
-  const uploadCard = document.getElementById('uploadCard');
-  const fileInput = document.getElementById('fileInput');
-  const status = document.getElementById('status');
-  const viewerBox = document.getElementById('viewerBox');
-  const mv = document.getElementById('mv');
+  <script>
+    const viewer = document.getElementById('main-viewer');
+    const container = document.getElementById('viewer-container');
+    const status = document.getElementById('status');
 
-  // --- Verbesserte Logik zum Laden aus der App ---
-  function checkAppParams() {
-    const params = new URLSearchParams(window.location.search);
-    const modelUrl = params.get('model');
-
-    if (modelUrl) {
-      console.log("Empfangene Modell-URL:", modelUrl);
-      showStatus('⏳ Lade Modell aus Snap2XR...', 'loading');
-      
-      // Das Modell laden
-      mv.setAttribute('src', modelUrl);
-      mv.setAttribute('crossorigin', 'anonymous'); // CORS Fix
-      
-      viewerBox.classList.add('active');
-      uploadCard.style.display = 'none';
-      
-      // Erfolgsmeldung nach kurzem Check
-      mv.addEventListener('load', () => {
-        showStatus('✅ Modell erfolgreich geladen!', 'success');
-      });
-
-      // Fehlermeldung, falls das Modell nicht geladen werden kann
-      mv.addEventListener('error', (err) => {
-        console.error("Fehler beim Laden des Modells:", err);
-        showStatus('❌ Modell konnte nicht geladen werden. (CORS oder Link abgelaufen)', 'error');
-      });
+    function showStatus(msg, type) {
+      status.innerText = msg;
+      status.className = `status ${type}`;
     }
-  }
 
-  // Warten bis alles bereit ist
-  window.addEventListener('load', checkAppParams);
+    // --- DIESE FUNKTION WIRD VON DER APP AUFGERUFEN ---
+    window.receiveModelFromApp = function(base64Data) {
+      try {
+        showStatus('⏳ Modell wird verarbeitet...', 'loading');
+        document.body.classList.add('app-mode');
 
-  // --- Bestehende Upload-Logik ---
-  uploadBox.addEventListener('click', () => fileInput.click());
-  uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); uploadBox.classList.add('dragover'); });
-  uploadBox.addEventListener('dragleave', () => { uploadBox.classList.remove('dragover'); });
-  uploadBox.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadBox.classList.remove('dragover');
-    handleFile(e.dataTransfer.files[0]);
-  });
-  fileInput.addEventListener('change', (e) => { handleFile(e.target.files[0]); });
+        // Base64 zurück in eine Datei (Blob) verwandeln
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: 'model/gltf-binary'});
+        
+        // Lokale URL für den Viewer erstellen
+        const url = URL.createObjectURL(blob);
+        
+        viewer.src = url;
+        container.classList.add('active');
+        showStatus('✅ Modell erfolgreich aus App geladen!', 'success');
+      } catch (err) {
+        showStatus('❌ Fehler beim Verarbeiten der App-Daten', 'error');
+        console.error(err);
+      }
+    };
 
-  function handleFile(file) {
-    if (!file) return;
-    if (!['glb', 'usdz', 'gltf'].some(ext => file.name.endsWith(ext))) {
-      showStatus('❌ Nur .glb, .usdz oder .gltf Dateien erlaubt!', 'error');
-      return;
-    }
-    showStatus('⏳ Wird geladen...', 'loading');
-    const blobUrl = URL.createObjectURL(file);
-    mv.src = blobUrl;
-    viewerBox.classList.add('active');
-    showStatus(`✅ ${file.name} erfolgreich geladen!`, 'success');
-  }
+    // Manueller Upload (Fallback)
+    document.getElementById('fileInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        viewer.src = URL.createObjectURL(file);
+        container.classList.add('active');
+        showStatus('✅ Datei geladen', 'success');
+      }
+    };
 
-  function showStatus(message, type) {
-    status.textContent = message;
-    status.className = `status ${type}`;
-  }
-
-  document.getElementById('btnReset').addEventListener('click', () => {
-    mv.cameraOrbit = '0deg 75deg 2.5m';
-    mv.fieldOfView = '30deg';
-  });
-
-  document.getElementById('btnFullscreen').addEventListener('click', async () => {
-    if (!document.fullscreenElement) { await mv.requestFullscreen?.(); } 
-    else { await document.exitFullscreen?.(); }
-  });
-
-  document.getElementById('btnAR').addEventListener('click', async () => {
-    if (typeof mv.activateAR === 'function') {
-      try { await mv.activateAR(); }
-      catch(e) { alert('AR konnte nicht gestartet werden.'); }
-    } else { alert('AR wird nicht unterstützt.'); }
-  });
-</script>
+    document.getElementById('btn-reset').onclick = () => viewer.cameraOrbit = '0deg 75deg 105%';
+    document.getElementById('btn-ar').onclick = () => viewer.activateAR();
+  </script>
 </body>
 </html>
