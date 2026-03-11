@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Snap2XR | AR Model Viewer</title>
+  <title>AR Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   
   <style>
@@ -94,7 +94,8 @@
       <div class="viewerBar">
         <button class="ui" id="btnReset">↩️ Reset</button>
         <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
-        <button class="ui" id="btnAR">✨ AR starten</button>
+        <button class="ui" id="btnAR">AR starten</button>
+        <h1>Dennis</h1>
       </div>
     </div>
   </div>
@@ -156,7 +157,7 @@
       }
       
       currentCloudUrl = null; // Reset
-      showStatus('🚀 Hochladen... bitte warten...', 'loading');
+      showStatus('Hochladen... bitte warten...', 'loading');
 
       const formData = new FormData();
       formData.append('reqtype', 'fileupload');
