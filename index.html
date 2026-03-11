@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="de">
-<head>
-  <meta charset="utf-8" />
+<head><meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AR Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
@@ -87,18 +86,19 @@
 <body>
   <div class="wrap">
     <h1>AR Model Viewer</h1>
-    <p>Lade dein GLB oder USDZ Modell hoch und betrachte es in 3D!</p>
+    <p>Lade dein GLB oder USDZ Modell hoch oder betrachte es direkt aus der App!</p>
 
-    <!-- UPLOAD -->
-    <div class="card">
+    <!-- UPLOAD (Wird ausgeblendet, wenn Modell aus App geladen wird) -->
+    <div class="card" id="uploadCard">
       <h2>📤 Modell hochladen</h2>
       <div class="uploadBox" id="uploadBox">
         <p>📁 Datei hierher ziehen oder klicken</p>
         <p style="font-size: 12px; margin-top: 8px; color: #888;">Unterstützt: .glb, .usdz, .gltf</p>
         <input type="file" id="fileInput" accept=".glb,.usdz,.gltf" />
       </div>
-      <div id="status" class="status"></div>
     </div>
+    
+    <div id="status" class="status"></div>
 
     <!-- VIEWER -->
     <div class="card viewerBox" id="viewerBox">
@@ -128,10 +128,34 @@
 
   <script>
     const uploadBox = document.getElementById('uploadBox');
+    const uploadCard = document.getElementById('uploadCard');
     const fileInput = document.getElementById('fileInput');
     const status = document.getElementById('status');
     const viewerBox = document.getElementById('viewerBox');
     const mv = document.getElementById('mv');
+
+    // --- NEU: Logik zum automatischen Laden aus der App ---
+    function checkAppParams() {
+      const params = new URLSearchParams(window.location.search);
+      const modelUrl = params.get('model');
+
+      if (modelUrl) {
+        showStatus('⏳ Modell wird aus der App geladen...', 'loading');
+        
+        // Modell-Quelle setzen
+        mv.src = modelUrl;
+        viewerBox.classList.add('active');
+        
+        // Upload-Box verstecken für sauberes App-Design
+        uploadCard.style.display = 'none';
+        
+        showStatus('✅ Modell erfolgreich geladen!', 'success');
+      }
+    }
+
+    // Beim Start prüfen
+    checkAppParams();
+    // -----------------------------------------------------
 
     // Upload via Klick
     uploadBox.addEventListener('click', () => fileInput.click());
@@ -157,11 +181,10 @@
       handleFile(e.target.files[0]);
     });
 
-    // Datei laden
+    // Datei lokal laden
     function handleFile(file) {
       if (!file) return;
 
-      // Dateiformat prüfen
       if (!['glb', 'usdz', 'gltf'].some(ext => file.name.endsWith(ext))) {
         showStatus('❌ Nur .glb, .usdz oder .gltf Dateien erlaubt!', 'error');
         return;
@@ -169,25 +192,10 @@
 
       showStatus('⏳ Wird geladen...', 'loading');
 
-      // FileReader verwenden
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        // Blob-URL erstellen
-        const blobUrl = URL.createObjectURL(file);
-        
-        // Modell anzeigen
-        mv.src = blobUrl;
-        viewerBox.classList.add('active');
-        
-        showStatus(`✅ ${file.name} erfolgreich geladen!`, 'success');
-      };
-
-      reader.onerror = () => {
-        showStatus('❌ Fehler beim Lesen der Datei!', 'error');
-      };
-
-      reader.readAsArrayBuffer(file);
+      const blobUrl = URL.createObjectURL(file);
+      mv.src = blobUrl;
+      viewerBox.classList.add('active');
+      showStatus(`✅ ${file.name} erfolgreich geladen!`, 'success');
     }
 
     function showStatus(message, type) {
@@ -195,13 +203,12 @@
       status.className = `status ${type}`;
     }
 
-    // Reset-Button
+    // Buttons
     document.getElementById('btnReset').addEventListener('click', () => {
       mv.cameraOrbit = '0deg 75deg 2.5m';
       mv.fieldOfView = '30deg';
     });
 
-    // Fullscreen-Button
     document.getElementById('btnFullscreen').addEventListener('click', async () => {
       if (!document.fullscreenElement) {
         await mv.requestFullscreen?.();
@@ -210,17 +217,15 @@
       }
     });
 
-    // AR-Button
     document.getElementById('btnAR').addEventListener('click', async () => {
       if (typeof mv.activateAR === 'function') {
         try { await mv.activateAR(); }
-        catch(e) { alert('AR konnte nicht gestartet werden. Nutze die 3D-Ansicht.'); }
+        catch(e) { alert('AR konnte nicht gestartet werden.'); }
       } else {
-        alert('AR wird in diesem Browser/auf diesem Gerät nicht unterstützt.');
+        alert('AR wird nicht unterstützt.');
       }
     });
 
-    // Auto-rotate stoppen bei Interaktion
     mv.addEventListener('interaction-start', () => mv.autoRotate = false);
     mv.addEventListener('interaction-end', () => mv.autoRotate = true);
   </script>
