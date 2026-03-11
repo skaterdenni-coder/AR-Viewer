@@ -126,108 +126,90 @@
     </div>
   </div>
 
-  <script>
-    const uploadBox = document.getElementById('uploadBox');
-    const uploadCard = document.getElementById('uploadCard');
-    const fileInput = document.getElementById('fileInput');
-    const status = document.getElementById('status');
-    const viewerBox = document.getElementById('viewerBox');
-    const mv = document.getElementById('mv');
+  <script>  const uploadBox = document.getElementById('uploadBox');
+  const uploadCard = document.getElementById('uploadCard');
+  const fileInput = document.getElementById('fileInput');
+  const status = document.getElementById('status');
+  const viewerBox = document.getElementById('viewerBox');
+  const mv = document.getElementById('mv');
 
-    // --- NEU: Logik zum automatischen Laden aus der App ---
-    function checkAppParams() {
-      const params = new URLSearchParams(window.location.search);
-      const modelUrl = params.get('model');
+  // --- Verbesserte Logik zum Laden aus der App ---
+  function checkAppParams() {
+    const params = new URLSearchParams(window.location.search);
+    const modelUrl = params.get('model');
 
-      if (modelUrl) {
-        showStatus('⏳ Modell wird aus der App geladen...', 'loading');
-        
-        // Modell-Quelle setzen
-        mv.src = modelUrl;
-        viewerBox.classList.add('active');
-        
-        // Upload-Box verstecken für sauberes App-Design
-        uploadCard.style.display = 'none';
-        
-        showStatus('✅ Modell erfolgreich geladen!', 'success');
-      }
-    }
-
-    // Beim Start prüfen
-    checkAppParams();
-    // -----------------------------------------------------
-
-    // Upload via Klick
-    uploadBox.addEventListener('click', () => fileInput.click());
-
-    // Drag & Drop
-    uploadBox.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadBox.classList.add('dragover');
-    });
-
-    uploadBox.addEventListener('dragleave', () => {
-      uploadBox.classList.remove('dragover');
-    });
-
-    uploadBox.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadBox.classList.remove('dragover');
-      handleFile(e.dataTransfer.files[0]);
-    });
-
-    // File Input Change
-    fileInput.addEventListener('change', (e) => {
-      handleFile(e.target.files[0]);
-    });
-
-    // Datei lokal laden
-    function handleFile(file) {
-      if (!file) return;
-
-      if (!['glb', 'usdz', 'gltf'].some(ext => file.name.endsWith(ext))) {
-        showStatus('❌ Nur .glb, .usdz oder .gltf Dateien erlaubt!', 'error');
-        return;
-      }
-
-      showStatus('⏳ Wird geladen...', 'loading');
-
-      const blobUrl = URL.createObjectURL(file);
-      mv.src = blobUrl;
+    if (modelUrl) {
+      console.log("Empfangene Modell-URL:", modelUrl);
+      showStatus('⏳ Lade Modell aus Snap2XR...', 'loading');
+      
+      // Das Modell laden
+      mv.setAttribute('src', modelUrl);
+      mv.setAttribute('crossorigin', 'anonymous'); // CORS Fix
+      
       viewerBox.classList.add('active');
-      showStatus(`✅ ${file.name} erfolgreich geladen!`, 'success');
+      uploadCard.style.display = 'none';
+      
+      // Erfolgsmeldung nach kurzem Check
+      mv.addEventListener('load', () => {
+        showStatus('✅ Modell erfolgreich geladen!', 'success');
+      });
+
+      // Fehlermeldung, falls das Modell nicht geladen werden kann
+      mv.addEventListener('error', (err) => {
+        console.error("Fehler beim Laden des Modells:", err);
+        showStatus('❌ Modell konnte nicht geladen werden. (CORS oder Link abgelaufen)', 'error');
+      });
     }
+  }
 
-    function showStatus(message, type) {
-      status.textContent = message;
-      status.className = `status ${type}`;
+  // Warten bis alles bereit ist
+  window.addEventListener('load', checkAppParams);
+
+  // --- Bestehende Upload-Logik ---
+  uploadBox.addEventListener('click', () => fileInput.click());
+  uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); uploadBox.classList.add('dragover'); });
+  uploadBox.addEventListener('dragleave', () => { uploadBox.classList.remove('dragover'); });
+  uploadBox.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadBox.classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => { handleFile(e.target.files[0]); });
+
+  function handleFile(file) {
+    if (!file) return;
+    if (!['glb', 'usdz', 'gltf'].some(ext => file.name.endsWith(ext))) {
+      showStatus('❌ Nur .glb, .usdz oder .gltf Dateien erlaubt!', 'error');
+      return;
     }
+    showStatus('⏳ Wird geladen...', 'loading');
+    const blobUrl = URL.createObjectURL(file);
+    mv.src = blobUrl;
+    viewerBox.classList.add('active');
+    showStatus(`✅ ${file.name} erfolgreich geladen!`, 'success');
+  }
 
-    // Buttons
-    document.getElementById('btnReset').addEventListener('click', () => {
-      mv.cameraOrbit = '0deg 75deg 2.5m';
-      mv.fieldOfView = '30deg';
-    });
+  function showStatus(message, type) {
+    status.textContent = message;
+    status.className = `status ${type}`;
+  }
 
-    document.getElementById('btnFullscreen').addEventListener('click', async () => {
-      if (!document.fullscreenElement) {
-        await mv.requestFullscreen?.();
-      } else {
-        await document.exitFullscreen?.();
-      }
-    });
+  document.getElementById('btnReset').addEventListener('click', () => {
+    mv.cameraOrbit = '0deg 75deg 2.5m';
+    mv.fieldOfView = '30deg';
+  });
 
-    document.getElementById('btnAR').addEventListener('click', async () => {
-      if (typeof mv.activateAR === 'function') {
-        try { await mv.activateAR(); }
-        catch(e) { alert('AR konnte nicht gestartet werden.'); }
-      } else {
-        alert('AR wird nicht unterstützt.');
-      }
-    });
+  document.getElementById('btnFullscreen').addEventListener('click', async () => {
+    if (!document.fullscreenElement) { await mv.requestFullscreen?.(); } 
+    else { await document.exitFullscreen?.(); }
+  });
 
-    mv.addEventListener('interaction-start', () => mv.autoRotate = false);
-    mv.addEventListener('interaction-end', () => mv.autoRotate = true);
-  </script>
+  document.getElementById('btnAR').addEventListener('click', async () => {
+    if (typeof mv.activateAR === 'function') {
+      try { await mv.activateAR(); }
+      catch(e) { alert('AR konnte nicht gestartet werden.'); }
+    } else { alert('AR wird nicht unterstützt.'); }
+  });
+</script>
 </body>
 </html>
