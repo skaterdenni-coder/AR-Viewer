@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR Model Viewer</title>
+  <title>AR Model Viewer - Turbo Load</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   
   <style>
@@ -12,7 +12,7 @@
       --btn2:#2d7d46;
     }
     * { box-sizing: border-box; }
-    body{ margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+    body{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
     .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
     h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
     
@@ -28,7 +28,6 @@
       cursor: pointer; transition: all 0.3s;
     }
     .uploadBox:hover{ background: #e8f5f0; }
-    .uploadBox.dragover{ background: #d4ead8; border-color: #1a5a35; border-width: 3px; }
     .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
     .uploadBox input{ display: none; }
     
@@ -49,7 +48,7 @@
     .viewerBox.active{ display: block; }
     
     model-viewer{
-      width: 100%; height: 62vh; min-height: 380px;
+      width: 100%; height: 60vh; min-height: 380px;
       background:#fff; border-radius: 12px;
       border: 1px solid var(--border);
     }
@@ -76,38 +75,29 @@
 <body>
   <div class="wrap">
     <h1>AR Model Viewer</h1>
-    <p>Lade dein 3D-Modell hoch und betrachte es Online</p>
+    <p>3D-Modell sofort ansehen & im Hintergrund teilen</p>
 
     <div class="card" id="uploadCard">
-      <h2>📤 Modell hochladen</h2>
       <div class="uploadBox" id="uploadBox">
-        <p>📁 Datei hierher ziehen oder klicken</p>
-        <p style="font-size: 12px; margin-top: 8px; color: #888;">Unterstützt: .glb (Link 24h gültig)</p>
+        <p>📁 .glb Datei hierher ziehen oder klicken</p>
         <input type="file" id="fileInput" accept=".glb" />
       </div>
       <div id="status" class="status"></div>
     </div>
 
     <div class="card viewerBox" id="viewerBox">
-      <h2>🎬 3D Viewer</h2>
       <model-viewer id="mv" 
-  camera-controls 
-  auto-rotate 
-  shadow-intensity="1"  shadow-softness="1"
-  exposure="1.0" 
-  ar 
-  ar-modes="webxr scene-viewer quick-look" 
-  ar-placement="floor"
-  camera-target="0m 0m 0m"
-  bounds="tight">
-</model-viewer>
+        camera-controls auto-rotate shadow-intensity="1" 
+        ar ar-modes="webxr scene-viewer quick-look" 
+        ar-placement="floor" bounds="tight">
+      </model-viewer>
 
       <div class="viewerBar">
         <button class="ui" id="btnReset">↩️ Reset</button>
         <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
         <button class="ui" id="btnAR">AR starten</button>
-      <div>   <p style="font-size: 12px">Created by Simba 13.03.2026 15:00</p> </div>
       </div>
+      <p style="font-size: 11px; color:#888; margin-top:15px;">Created by Simba | 2026</p>
     </div>
   </div>
 
@@ -115,18 +105,16 @@
     const mv = document.getElementById('mv');
     const viewerBox = document.getElementById('viewerBox');
     const status = document.getElementById('status');
-    const uploadBox = document.getElementById('uploadBox');
     const fileInput = document.getElementById('fileInput');
-
-    let currentCloudUrl = null; // Speichert die URL von Litterbox
+    const uploadBox = document.getElementById('uploadBox');
 
     function showStatus(message, type) {
-      status.textContent = message;
+      status.innerHTML = message;
       status.className = `status ${type}`;
       status.style.display = 'block';
     }
 
-    // 1. Logik: Prüfen ob ein Modell geteilt wurde
+    // 1. Geteiltes Modell laden (URL Parameter)
     window.addEventListener('load', () => {
       const params = new URLSearchParams(window.location.search);
       const modelUrl = params.get('model');
@@ -137,25 +125,7 @@
       }
     });
 
-    // 2. Logik: Load Listener für das Modell
-    mv.addEventListener('load', () => {
-      if (currentCloudUrl) {
-        // Falls wir gerade hochgeladen haben, zeigen wir jetzt den Link
-        const shareUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(currentCloudUrl);
-        status.innerHTML = `✅ Modell geladen & bereit zum Teilen!<br>
-                            <div class="shareLinkBox" onclick="copyLink('${shareUrl}')">${shareUrl}</div>
-                            <small style="display:block; margin-top:5px;">(Klicke zum Kopieren)</small>`;
-        status.className = 'status success';
-      } else {
-        showStatus('✅ Modell erfolgreich geladen!', 'success');
-      }
-    });
-
-    mv.addEventListener('error', () => {
-      showStatus('❌ Fehler beim Anzeigen des Modells.', 'error');
-    });
-
-    // 3. Logik: Upload
+    // 2. Upload Logik
     uploadBox.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
       if (e.target.files[0]) handleUpload(e.target.files[0]);
@@ -167,9 +137,13 @@
         return;
       }
       
-      currentCloudUrl = null; // Reset
-      showStatus('Hochladen... bitte warten...', 'loading');
+      // --- SCHRITT 1: Sofortige lokale Anzeige ---
+      const localUrl = URL.createObjectURL(file);
+      mv.src = localUrl;
+      viewerBox.classList.add('active');
+      showStatus('🚀 Modell wird lokal geladen... Cloud-Upload läuft im Hintergrund.', 'loading');
 
+      // --- SCHRITT 2: Hintergrund Upload ---
       const formData = new FormData();
       formData.append('reqtype', 'fileupload');
       formData.append('time', '24h');
@@ -177,22 +151,25 @@
 
       try {
         const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
-          method: 'POST',
-          body: formData
+          method: 'POST', body: formData
         });
-        const fileUrl = await response.text();
+        const cloudUrl = await response.text();
         
-        if (!fileUrl.startsWith('http')) throw new Error('Ungültig');
+        if (!cloudUrl.startsWith('http')) throw new Error('Upload fehlgeschlagen');
 
-        currentCloudUrl = fileUrl; // URL merken
-        mv.src = fileUrl;          // Viewer starten (Triggert 'load' Event)
-        viewerBox.classList.add('active');
+        // Link generieren
+        const shareUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(cloudUrl);
         
-        showStatus('⏳ Modell wird im Viewer vorbereitet...', 'loading');
+        // Update Status ohne den Viewer zu stören
+        showStatus(`✅ Modell bereit!<br>
+                    <div class="shareLinkBox" onclick="copyLink('${shareUrl}')">${shareUrl}</div>
+                    <small>(Klicken zum Kopieren)</small>`, 'success');
+
+        // Wichtig: Für AR auf manchen Geräten tauschen wir die Quelle nun gegen die echte URL aus
+        mv.src = cloudUrl; 
+
       } catch (err) {
-        showStatus('❌ Upload fehlgeschlagen. Nur lokale Ansicht.', 'error');
-        mv.src = URL.createObjectURL(file);
-        viewerBox.classList.add('active');
+        showStatus('⚠️ Lokal geladen, aber Cloud-Upload (Teilen) fehlgeschlagen.', 'error');
       }
     }
 
@@ -200,21 +177,10 @@
       navigator.clipboard.writeText(text).then(() => alert('Link kopiert!'));
     };
 
-    // App Support
-    window.receiveModelFromApp = function(base64Data) {
-      currentCloudUrl = null; 
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-      const blob = new Blob([new Uint8Array(byteNumbers)], {type: 'model/gltf-binary'});
-      mv.src = URL.createObjectURL(blob);
-      viewerBox.classList.add('active');
-    };
-
-    // Buttons
-    document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg 2.5m'; mv.fieldOfView = '30deg'; };
-    document.getElementById('btnFullscreen').onclick = () => { if (!document.fullscreenElement) mv.requestFullscreen?.(); else document.exitFullscreen?.(); };
-    document.getElementById('btnAR').onclick = () => { if (typeof mv.activateAR === 'function') mv.activateAR(); else alert('AR nicht unterstützt.'); };
+    // UI Buttons
+    document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; };
+    document.getElementById('btnFullscreen').onclick = () => { if (!document.fullscreenElement) mv.requestFullscreen(); else document.exitFullscreen(); };
+    document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
   </script>
 </body>
 </html>
