@@ -38,7 +38,6 @@
     .status.success{ display: block; background: #d4edda; color: #155724; }
     .status.loading{ display: block; background: #d1ecf1; color: #0c5460; }
 
-    /* Share Bereich Styling */
     #shareArea { display: none; margin-top: 15px; }
     .share-flex { 
       display: flex; align-items: center; justify-content: center; 
@@ -74,11 +73,11 @@
 <body>
   <div class="wrap">
     <h1>AR Model Viewer</h1>
-    <p>Lade dein 3D-Modell hoch und betrachte es sofort</p>
+    <p>Lade dein 3D-Modell hoch oder betrachte das geteilte Modell</p>
 
     <div class="card" id="uploadCard">
       <div class="uploadBox" id="uploadBox">
-        <p>📁 Datei hierher ziehen oder klicken (.glb)</p>
+        <p>📁 Neues Modell hochladen (.glb)</p>
         <input type="file" id="fileInput" accept=".glb" />
       </div>
       <div id="status" class="status"></div>
@@ -149,16 +148,15 @@
 
         currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
         
-        // QR Code & Link anzeigen
         shareLinkDisplay.textContent = currentUrl;
         qrcodeDiv.innerHTML = "";
         new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
         
         shareArea.style.display = "block";
-        showStatus("✅ Bereit zum Teilen!", "success");
-        mv.src = fileUrl; // Für AR auf Cloud-URL wechseln
+        showStatus("✅ Modell bereit & Link erstellt!", "success");
+        mv.src = fileUrl; 
       } catch(e) {
-        showStatus("❌ Nur lokale Ansicht (Upload fehlgeschlagen)", "loading");
+        showStatus("❌ Nur lokale Ansicht (Cloud-Upload fehlgeschlagen)", "loading");
       }
     }
 
@@ -170,12 +168,13 @@
     document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
 
-    // URL Parameter Check
+    // --- GEÄNDERTER BEREICH ---
     const params = new URLSearchParams(window.location.search);
     if (params.get('model')) {
       mv.src = params.get('model');
       viewerBox.classList.add('active');
-      document.getElementById('uploadCard').style.display = 'none';
+      // Zeile zum Verstecken wurde entfernt - Upload bleibt aktiv!
+      showStatus("📦 Geteiltes Modell geladen", "success");
     }
   </script>
 </body>
