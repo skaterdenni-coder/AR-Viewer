@@ -1,3 +1,7 @@
+Abwandlung der AR-Demo von:edoardomignano  Link: https://github.com/edoardomignano/ar-demo
+diese version wurde um einen Datenupload und Sharing Funktion erweitert. 
+
+
 🚀 AR Model Viewer
 Ein leichtgewichtiger, webbasierter 3D-Modell-Viewer mit Augmented Reality (AR) Unterstützung. Lade deine .glb-Dateien hoch, betrachte sie im Browser und teile sie per Link mit anderen.
 
