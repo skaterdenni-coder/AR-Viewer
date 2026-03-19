@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR Model Viewer - Turbo Load</title>
+  <title>AR Model Viewer</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <style>
     :root{
@@ -27,47 +28,45 @@
       border-radius: 12px; padding: 40px 20px; text-align: center;
       cursor: pointer; transition: all 0.3s;
     }
-    .uploadBox:hover{ background: #e8f5f0; }
     .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
     .uploadBox input{ display: none; }
     
     .status{
       padding: 12px; margin: 10px 0; border-radius: 6px;
       display: none; font-weight: 600; text-align: center;
-      word-break: break-all;
     }
     .status.success{ display: block; background: #d4edda; color: #155724; }
-    .status.error{ display: block; background: #f8d7da; color: #721c24; }
     .status.loading{ display: block; background: #d1ecf1; color: #0c5460; }
-    
+
+    /* Share Bereich Styling */
+    #shareArea { display: none; margin-top: 15px; }
+    .share-flex { 
+      display: flex; align-items: center; justify-content: center; 
+      gap: 20px; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee;
+    }
+    .link-box { flex: 1; text-align: left; }
+    .shareLinkBox {
+      background: #fff; border: 1px solid #ccc; padding: 10px;
+      margin-top: 5px; border-radius: 8px; font-family: monospace;
+      font-size: 12px; color: #004a99; cursor: pointer; word-break: break-all;
+    }
+    #qrcode img { border: 4px solid #fff; border-radius: 4px; }
+
     .viewerBox{
       background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 12px; margin-top: 18px;
-      display: none;
+      padding: 12px; margin-top: 18px; display: none;
     }
     .viewerBox.active{ display: block; }
     
     model-viewer{
       width: 100%; height: 60vh; min-height: 380px;
-      background:#fff; border-radius: 12px;
-      border: 1px solid var(--border);
+      background:#fff; border-radius: 12px; border: 1px solid var(--border);
     }
     
-    .viewerBar{
-      display:flex; gap:10px; flex-wrap:wrap;
-      justify-content:center; margin: 12px 0 0;
-    }
-
+    .viewerBar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin: 12px 0 0; }
     button.ui{
       border:1px solid var(--border); background:#fff; color:#111;
       border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor:pointer;
-    }
-    button.ui:hover{ background:#f0f0f0; }
-
-    .shareLinkBox {
-      background: #f9f9f9; border: 1px solid #ccc; padding: 10px;
-      margin-top: 10px; border-radius: 8px; font-family: monospace;
-      font-size: 12px; color: #004a99; cursor: pointer;
     }
   </style>
 </head>
@@ -75,29 +74,35 @@
 <body>
   <div class="wrap">
     <h1>AR Model Viewer</h1>
-    <p>3D-Modell sofort ansehen & im Hintergrund teilen</p>
+    <p>Lade dein 3D-Modell hoch und betrachte es sofort</p>
 
     <div class="card" id="uploadCard">
       <div class="uploadBox" id="uploadBox">
-        <p>📁 .glb Datei hierher ziehen oder klicken</p>
+        <p>📁 Datei hierher ziehen oder klicken (.glb)</p>
         <input type="file" id="fileInput" accept=".glb" />
       </div>
       <div id="status" class="status"></div>
+      
+      <div id="shareArea">
+        <div class="share-flex">
+          <div class="link-box">
+            <label style="font-size: 12px; font-weight: bold;">Teilen-Link:</label>
+            <div id="shareLinkDisplay" class="shareLinkBox" onclick="copyLink()"></div>
+            <small>(Klicken zum Kopieren)</small>
+          </div>
+          <div id="qrcode"></div>
+        </div>
+      </div>
     </div>
 
     <div class="card viewerBox" id="viewerBox">
-      <model-viewer id="mv" 
-        camera-controls auto-rotate shadow-intensity="1" 
-        ar ar-modes="webxr scene-viewer quick-look" 
-        ar-placement="floor" bounds="tight">
-      </model-viewer>
-
+      <model-viewer id="mv" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" bounds="tight"></model-viewer>
       <div class="viewerBar">
         <button class="ui" id="btnReset">↩️ Reset</button>
         <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
         <button class="ui" id="btnAR">AR starten</button>
       </div>
-      <p style="font-size: 11px; color:#888; margin-top:15px;">Created by Simba | 2026</p>
+      <p style="font-size: 11px; margin-top: 15px; color: #888;">Created by Simba</p>
     </div>
   </div>
 
@@ -107,80 +112,71 @@
     const status = document.getElementById('status');
     const fileInput = document.getElementById('fileInput');
     const uploadBox = document.getElementById('uploadBox');
+    const shareArea = document.getElementById('shareArea');
+    const shareLinkDisplay = document.getElementById('shareLinkDisplay');
+    const qrcodeDiv = document.getElementById('qrcode');
 
-    function showStatus(message, type) {
-      status.innerHTML = message;
+    let currentUrl = "";
+
+    function showStatus(msg, type) {
+      status.textContent = msg;
       status.className = `status ${type}`;
       status.style.display = 'block';
     }
 
-    // 1. Geteiltes Modell laden (URL Parameter)
-    window.addEventListener('load', () => {
-      const params = new URLSearchParams(window.location.search);
-      const modelUrl = params.get('model');
-      if (modelUrl) {
-        showStatus('⏳ Geteiltes Modell wird geladen...', 'loading');
-        mv.src = modelUrl;
-        viewerBox.classList.add('active');
-      }
-    });
-
-    // 2. Upload Logik
-    uploadBox.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) handleUpload(e.target.files[0]);
-    });
+    uploadBox.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); };
 
     async function handleUpload(file) {
-      if (!file.name.endsWith('.glb')) {
-        showStatus('❌ Bitte nur .glb Dateien!', 'error');
-        return;
-      }
+      if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
       
-      // --- SCHRITT 1: Sofortige lokale Anzeige ---
-      const localUrl = URL.createObjectURL(file);
-      mv.src = localUrl;
+      // 1. Sofort-Vorschau
+      mv.src = URL.createObjectURL(file);
       viewerBox.classList.add('active');
-      showStatus('🚀 Modell wird lokal geladen... Cloud-Upload läuft im Hintergrund.', 'loading');
+      showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
+      shareArea.style.display = "none";
 
-      // --- SCHRITT 2: Hintergrund Upload ---
-      const formData = new FormData();
-      formData.append('reqtype', 'fileupload');
-      formData.append('time', '24h');
-      formData.append('fileToUpload', file);
+      // 2. Hintergrund Upload
+      const fd = new FormData();
+      fd.append('reqtype', 'fileupload');
+      fd.append('time', '24h');
+      fd.append('fileToUpload', file);
 
       try {
-        const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
-          method: 'POST', body: formData
-        });
-        const cloudUrl = await response.text();
+        const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', { method: 'POST', body: fd });
+        const fileUrl = await res.text();
+        if (!fileUrl.startsWith('http')) throw new Error();
+
+        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
         
-        if (!cloudUrl.startsWith('http')) throw new Error('Upload fehlgeschlagen');
-
-        // Link generieren
-        const shareUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(cloudUrl);
+        // QR Code & Link anzeigen
+        shareLinkDisplay.textContent = currentUrl;
+        qrcodeDiv.innerHTML = "";
+        new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
         
-        // Update Status ohne den Viewer zu stören
-        showStatus(`✅ Modell bereit!<br>
-                    <div class="shareLinkBox" onclick="copyLink('${shareUrl}')">${shareUrl}</div>
-                    <small>(Klicken zum Kopieren)</small>`, 'success');
-
-        // Wichtig: Für AR auf manchen Geräten tauschen wir die Quelle nun gegen die echte URL aus
-        mv.src = cloudUrl; 
-
-      } catch (err) {
-        showStatus('⚠️ Lokal geladen, aber Cloud-Upload (Teilen) fehlgeschlagen.', 'error');
+        shareArea.style.display = "block";
+        showStatus("✅ Bereit zum Teilen!", "success");
+        mv.src = fileUrl; // Für AR auf Cloud-URL wechseln
+      } catch(e) {
+        showStatus("❌ Nur lokale Ansicht (Upload fehlgeschlagen)", "loading");
       }
     }
 
-    window.copyLink = function(text) {
-      navigator.clipboard.writeText(text).then(() => alert('Link kopiert!'));
+    window.copyLink = () => {
+      navigator.clipboard.writeText(currentUrl).then(() => alert("Link kopiert!"));
     };
 
-    // UI Buttons
     document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; };
-    document.getElementById('btnFullscreen').onclick = () => { if (!document.fullscreenElement) mv.requestFullscreen(); else document.exitFullscreen(); };
+    document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
+
+    // URL Parameter Check
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('model')) {
+      mv.src = params.get('model');
+      viewerBox.classList.add('active');
+      document.getElementById('uploadCard').style.display = 'none';
+    }
   </script>
 </body>
 </html>
