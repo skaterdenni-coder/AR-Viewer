@@ -66,7 +66,9 @@
     button.ui{
       border:1px solid var(--border); background:#fff; color:#111;
       border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor:pointer;
+      display: flex; align-items: center; gap: 5px;
     }
+    button.ui:hover { background: #f0f0f0; }
   </style>
 </head>
 
@@ -99,7 +101,8 @@
       <div class="viewerBar">
         <button class="ui" id="btnReset">↩️ Reset</button>
         <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
-        <button class="ui" id="btnAR">AR starten</button>
+        <button class="ui" id="btnAR">🕶️ AR starten</button>
+        <button class="ui" id="btnDownload" style="display:none;">💾 Download .glb</button>
       </div>
       <p style="font-size: 11px; margin-top: 15px; color: #888;">Created by Simba</p>
     </div>
@@ -114,6 +117,7 @@
     const shareArea = document.getElementById('shareArea');
     const shareLinkDisplay = document.getElementById('shareLinkDisplay');
     const qrcodeDiv = document.getElementById('qrcode');
+    const btnDownload = document.getElementById('btnDownload');
 
     let currentUrl = "";
 
@@ -123,17 +127,33 @@
       status.style.display = 'block';
     }
 
+    // Funktion zum Herunterladen
+    function triggerDownload(url) {
+      if (!url || url.startsWith('blob:')) {
+        // Falls es nur lokal ist, nutzen wir den fileInput Cache oder weisen darauf hin
+        alert("Download erst nach Cloud-Upload verfügbar.");
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "modell.glb";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
     uploadBox.onclick = () => fileInput.click();
     fileInput.onchange = (e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); };
 
     async function handleUpload(file) {
       if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
       
-      // 1. Sofort-Vorschau
+      // 1. Sofort-Vorschau (Blob URL)
       mv.src = URL.createObjectURL(file);
       viewerBox.classList.add('active');
       showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
       shareArea.style.display = "none";
+      btnDownload.style.display = "none";
 
       // 2. Hintergrund Upload
       const fd = new FormData();
@@ -154,7 +174,9 @@
         
         shareArea.style.display = "block";
         showStatus("✅ Modell bereit & Link erstellt!", "success");
-        mv.src = fileUrl; 
+        
+        mv.src = fileUrl; // Update auf die permanente URL
+        btnDownload.style.display = "inline-block"; // Download erlauben
       } catch(e) {
         showStatus("❌ Nur lokale Ansicht (Cloud-Upload fehlgeschlagen)", "loading");
       }
@@ -167,13 +189,15 @@
     document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; };
     document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
+    btnDownload.onclick = () => triggerDownload(mv.src);
 
-    // --- GEÄNDERTER BEREICH ---
+    // Prüfen ob ein Modell per Link geteilt wurde
     const params = new URLSearchParams(window.location.search);
     if (params.get('model')) {
-      mv.src = params.get('model');
+      const modelUrl = params.get('model');
+      mv.src = modelUrl;
       viewerBox.classList.add('active');
-      // Zeile zum Verstecken wurde entfernt - Upload bleibt aktiv!
+      btnDownload.style.display = "inline-block"; // Download für geteilte Modelle anzeigen
       showStatus("📦 Geteiltes Modell geladen", "success");
     }
   </script>
