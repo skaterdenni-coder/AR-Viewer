@@ -120,6 +120,7 @@
     const btnDownload = document.getElementById('btnDownload');
 
     let currentUrl = "";
+    let originalFileName = "modell.glb"; // Standardname
 
     function showStatus(msg, type) {
       status.textContent = msg;
@@ -127,19 +128,34 @@
       status.style.display = 'block';
     }
 
-    // Funktion zum Herunterladen
-    function triggerDownload(url) {
+    // Verbesserte Download-Funktion
+    async function triggerDownload(url, filename) {
       if (!url || url.startsWith('blob:')) {
-        // Falls es nur lokal ist, nutzen wir den fileInput Cache oder weisen darauf hin
         alert("Download erst nach Cloud-Upload verfügbar.");
         return;
       }
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "modell.glb";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      
+      try {
+        // Wir laden die Datei kurz in den Speicher, um den Namen zu erzwingen
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename; // Hier setzen wir den ursprünglichen Namen
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch (e) {
+        // Fallback falls fetch scheitert (z.B. CORS)
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.target = "_blank";
+        a.click();
+      }
     }
 
     uploadBox.onclick = () => fileInput.click();
@@ -148,14 +164,15 @@
     async function handleUpload(file) {
       if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
       
-      // 1. Sofort-Vorschau (Blob URL)
+      // Originalnamen speichern
+      originalFileName = file.name;
+      
       mv.src = URL.createObjectURL(file);
       viewerBox.classList.add('active');
       showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
       shareArea.style.display = "none";
       btnDownload.style.display = "none";
 
-      // 2. Hintergrund Upload
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
       fd.append('time', '24h');
@@ -166,7 +183,10 @@
         const fileUrl = await res.text();
         if (!fileUrl.startsWith('http')) throw new Error();
 
-        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
+        // Den Dateinamen hängen wir als Parameter an die URL an, damit er beim Teilen erhalten bleibt
+        currentUrl = window.location.origin + window.location.pathname + 
+                     '?model=' + encodeURIComponent(fileUrl) + 
+                     '&name=' + encodeURIComponent(originalFileName);
         
         shareLinkDisplay.textContent = currentUrl;
         qrcodeDiv.innerHTML = "";
@@ -175,8 +195,8 @@
         shareArea.style.display = "block";
         showStatus("✅ Modell bereit & Link erstellt!", "success");
         
-        mv.src = fileUrl; // Update auf die permanente URL
-        btnDownload.style.display = "inline-block"; // Download erlauben
+        mv.src = fileUrl;
+        btnDownload.style.display = "inline-block";
       } catch(e) {
         showStatus("❌ Nur lokale Ansicht (Cloud-Upload fehlgeschlagen)", "loading");
       }
@@ -189,16 +209,25 @@
     document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; };
     document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
-    btnDownload.onclick = () => triggerDownload(mv.src);
+    btnDownload.onclick = () => triggerDownload(mv.src, originalFileName);
 
-    // Prüfen ob ein Modell per Link geteilt wurde
+    // URL Parameter auslesen
     const params = new URLSearchParams(window.location.search);
     if (params.get('model')) {
       const modelUrl = params.get('model');
+      // Falls ein Name im Link steckt, diesen nutzen, sonst Fallback
+      originalFileName = params.get('name') || "modell.glb";
+      
       mv.src = modelUrl;
       viewerBox.classList.add('active');
-      btnDownload.style.display = "inline-block"; // Download für geteilte Modelle anzeigen
+      btnDownload.style.display = "inline-block";
       showStatus("📦 Geteiltes Modell geladen", "success");
+      
+      // currentUrl für QR Code / Kopieren wiederherstellen
+      currentUrl = window.location.href;
+      shareLinkDisplay.textContent = currentUrl;
+      new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
+      shareArea.style.display = "block";
     }
   </script>
 </body>
