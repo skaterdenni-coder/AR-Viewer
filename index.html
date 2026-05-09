@@ -120,7 +120,6 @@
     const btnDownload = document.getElementById('btnDownload');
 
     let currentUrl = "";
-    let originalFileName = "modell.glb"; // Standardname
 
     function showStatus(msg, type) {
       status.textContent = msg;
@@ -128,31 +127,40 @@
       status.style.display = 'block';
     }
 
-    // Verbesserte Download-Funktion
-    async function triggerDownload(url, filename) {
+    // Erzeugt den Zeitstempel-Namen
+    function getTimestampName() {
+      const now = new Date();
+      const tag = String(now.getDate()).padStart(2, '0');
+      const monat = String(now.getMonth() + 1).padStart(2, '0');
+      const stunde = String(now.getHours()).padStart(2, '0');
+      const minute = String(now.getMinutes()).padStart(2, '0');
+      return `Modell_${tag}-${monat}_${stunde}-${minute}.glb`;
+    }
+
+    async function triggerDownload(url) {
       if (!url || url.startsWith('blob:')) {
         alert("Download erst nach Cloud-Upload verfügbar.");
         return;
       }
       
+      const fileName = getTimestampName();
+      
       try {
-        // Wir laden die Datei kurz in den Speicher, um den Namen zu erzwingen
         const response = await fetch(url);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
         a.href = blobUrl;
-        a.download = filename; // Hier setzen wir den ursprünglichen Namen
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
-        // Fallback falls fetch scheitert (z.B. CORS)
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename;
+        a.download = fileName;
         a.target = "_blank";
         a.click();
       }
@@ -163,9 +171,6 @@
 
     async function handleUpload(file) {
       if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
-      
-      // Originalnamen speichern
-      originalFileName = file.name;
       
       mv.src = URL.createObjectURL(file);
       viewerBox.classList.add('active');
@@ -183,10 +188,7 @@
         const fileUrl = await res.text();
         if (!fileUrl.startsWith('http')) throw new Error();
 
-        // Den Dateinamen hängen wir als Parameter an die URL an, damit er beim Teilen erhalten bleibt
-        currentUrl = window.location.origin + window.location.pathname + 
-                     '?model=' + encodeURIComponent(fileUrl) + 
-                     '&name=' + encodeURIComponent(originalFileName);
+        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
         
         shareLinkDisplay.textContent = currentUrl;
         qrcodeDiv.innerHTML = "";
@@ -209,21 +211,16 @@
     document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; };
     document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
-    btnDownload.onclick = () => triggerDownload(mv.src, originalFileName);
+    btnDownload.onclick = () => triggerDownload(mv.src);
 
-    // URL Parameter auslesen
     const params = new URLSearchParams(window.location.search);
     if (params.get('model')) {
       const modelUrl = params.get('model');
-      // Falls ein Name im Link steckt, diesen nutzen, sonst Fallback
-      originalFileName = params.get('name') || "modell.glb";
-      
       mv.src = modelUrl;
       viewerBox.classList.add('active');
       btnDownload.style.display = "inline-block";
       showStatus("📦 Geteiltes Modell geladen", "success");
       
-      // currentUrl für QR Code / Kopieren wiederherstellen
       currentUrl = window.location.href;
       shareLinkDisplay.textContent = currentUrl;
       new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
