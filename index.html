@@ -166,7 +166,7 @@
         new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
         
         shareArea.style.display = "block";
-        showStatus("✅ Modell bereit & permanenter Link erstellt!", "success");
+        showStatus("Link erstellt!", "success");
         
         // Model-Viewer auf die neue URL umstellen (Cache-Vorteil)
         mv.src = fileUrl;
@@ -212,7 +212,7 @@
       fetch(tripoUrl)
         .then(res => res.blob())
         .then(blob => {
-          showStatus("🔄 Modell geladen. Erstelle permanenten Link...", "loading");
+          showStatus("🔄 Modell geladen. Erstelle  Link...", "loading");
           uploadBlobToLitterbox(blob);
         })
         .catch(err => {
