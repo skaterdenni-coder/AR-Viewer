@@ -1,114 +1,4 @@
-<!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR Model Viewer</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
-  <style>
-    :root{
-      --bg:#f5f6f7; --text:#111; --muted:#555; --card:#fff; --border:#e6e6e6;
-      --btn2:#2d7d46;
-    }
-    * { box-sizing: border-box; }
-    body{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
-    .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
-    h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
-    
-    .card{
-      background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 20px; margin: 14px auto;
-      box-shadow: 0 1px 0 rgba(0,0,0,.03);
-    }
-    
-    .uploadBox{
-      background: #f0f8f4; border: 2px dashed var(--btn2);
-      border-radius: 12px; padding: 40px 20px; text-align: center;
-      cursor: pointer; transition: all 0.3s;
-    }
-    .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
-    .uploadBox input{ display: none; }
-    
-    .status{
-      padding: 12px; margin: 10px 0; border-radius: 6px;
-      display: none; font-weight: 600; text-align: center;
-    }
-    .status.success{ display: block; background: #d4edda; color: #155724; }
-    .status.loading{ display: block; background: #d1ecf1; color: #0c5460; }
-
-    #shareArea { display: none; margin-top: 15px; }
-    .share-flex { 
-      display: flex; align-items: center; justify-content: center; 
-      gap: 20px; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee;
-    }
-    .link-box { flex: 1; text-align: left; }
-    .shareLinkBox {
-      background: #fff; border: 1px solid #ccc; padding: 10px;
-      margin-top: 5px; border-radius: 8px; font-family: monospace;
-      font-size: 12px; color: #004a99; cursor: pointer; word-break: break-all;
-    }
-    #qrcode img { border: 4px solid #fff; border-radius: 4px; }
-
-    .viewerBox{
-      background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 12px; margin-top: 18px; display: none;
-    }
-    .viewerBox.active{ display: block; }
-    
-    model-viewer{
-      width: 100%; height: 60vh; min-height: 380px;
-      background:#fff; border-radius: 12px; border: 1px solid var(--border);
-    }
-    
-    .viewerBar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin: 12px 0 0; }
-    button.ui{
-      border:1px solid var(--border); background:#fff; color:#111;
-      border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor:pointer;
-      display: flex; align-items: center; gap: 5px;
-    }
-    button.ui:hover { background: #f0f0f0; }
-  </style>
-</head>
-
-<body>
-  <div class="wrap">
-    <h1>AR Model Viewer</h1>
-    <p id="subText">Lade dein 3D-Modell hoch oder betrachte das geteilte Modell</p>
-
-    <div class="card" id="uploadCard">
-      <div class="uploadBox" id="uploadBox">
-        <p>📁 Neues Modell hochladen (.glb)</p>
-        <input type="file" id="fileInput" accept=".glb" />
-      </div>
-      <div id="status" class="status"></div>
-      
-      <div id="shareArea">
-        <div class="share-flex">
-          <div class="link-box">
-            <label style="font-size: 12px; font-weight: bold;">Teilen-Link (24h gültig):</label>
-            <div id="shareLinkDisplay" class="shareLinkBox" onclick="copyLink()"></div>
-            <small>(Klicken zum Kopieren)</small>
-          </div>
-          <div id="qrcode"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card viewerBox" id="viewerBox">
-      <model-viewer id="mv" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" bounds="tight"></model-viewer>
-      <div class="viewerBar">
-        <button class="ui" id="btnReset">↩️ Reset</button>
-        <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
-        <button class="ui" id="btnAR">AR starten</button>
-        <button class="ui" id="btnDownload" style="display:none;">💾 Download .glb</button>
-      </div>
-      <p style="font-size: 11px; margin-top: 15px; color: #888;">Created by Simba</p>
-    </div>
-  </div>
-
-  <script>
+<script>
     const mv = document.getElementById('mv');
     const viewerBox = document.getElementById('viewerBox');
     const status = document.getElementById('status');
@@ -132,22 +22,8 @@
       return `Modell_${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.glb`;
     }
 
-    async function triggerDownload(url) {
-      if (!url) return;
-      const fileName = getTimestampName();
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl; a.download = fileName;
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
-      } catch (e) { window.open(url, '_blank'); }
-    }
-
-    // Zentrale Funktion zum Hochladen eines Blobs zu Litterbox
-    async function uploadBlobToLitterbox(blob) {
+    // Verbesserter Upload: Lädt hoch, ohne die Anzeige im Viewer zu stören
+    async function backgroundUpload(blob) {
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
       fd.append('time', '24h');
@@ -158,21 +34,23 @@
         const fileUrl = await res.text();
         if (!fileUrl.startsWith('http')) throw new Error();
 
-        // Neuen permanenten Link generieren
-        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
+        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl.trim());
         
         shareLinkDisplay.textContent = currentUrl;
         qrcodeDiv.innerHTML = "";
         new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
         
         shareArea.style.display = "block";
-        showStatus("Link erstellt!", "success");
-        
-        // Model-Viewer auf die neue URL umstellen (Cache-Vorteil)
-        mv.src = fileUrl;
+        showStatus("✅ Modell bereit & permanenter Link erstellt!", "success");
         btnDownload.style.display = "inline-block";
+        
+        // Wir setzen mv.src NICHT neu, wenn es schon von Tripo lädt, 
+        // um den Ladevorgang nicht zu unterbrechen.
+        if (!mv.src || mv.src.startsWith('blob:')) {
+            mv.src = fileUrl;
+        }
       } catch(e) {
-        showStatus("⚠️ Modell geladen, aber Cloud-Link konnte nicht erstellt werden.", "loading");
+        console.error("Upload Fehler:", e);
       }
     }
 
@@ -183,7 +61,7 @@
         mv.src = URL.createObjectURL(file);
         viewerBox.classList.add('active');
         showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
-        uploadBlobToLitterbox(file);
+        backgroundUpload(file);
       }
     };
 
@@ -196,32 +74,23 @@
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
     btnDownload.onclick = () => triggerDownload(mv.src);
 
-    // --- Logik beim Laden der Seite ---
     const params = new URLSearchParams(window.location.search);
     
-    // FALL 1: Tripo-Link kommt direkt aus der App (Parameter ?tripo=...)
     if (params.get('tripo')) {
-      const tripoUrl = params.get('tripo');
-      console.log("Direkt-Laden von Tripo:", tripoUrl);
-      
-      mv.src = tripoUrl;
+      const tripoUrl = decodeURIComponent(params.get('tripo'));
+      mv.src = tripoUrl; // Sofort laden
       viewerBox.classList.add('active');
       showStatus("⚡ Blitz-Modus: Modell wird geladen...", "loading");
 
-      // Im Hintergrund von Tripo laden und zu Litterbox schieben
+      // Im Hintergrund zu Litterbox schieben
       fetch(tripoUrl)
         .then(res => res.blob())
-        .then(blob => {
-          showStatus("🔄 Modell geladen. Erstelle  Link...", "loading");
-          uploadBlobToLitterbox(blob);
-        })
+        .then(blob => backgroundUpload(blob))
         .catch(err => {
-          showStatus("❌ Fehler beim Laden des Tripo-Modells.", "loading");
+          console.warn("Background Upload fehlgeschlagen, Modell wird trotzdem angezeigt.");
         });
-    } 
-    // FALL 2: Klassischer Litterbox-Link (Parameter ?model=...)
-    else if (params.get('model')) {
-      const modelUrl = params.get('model');
+    } else if (params.get('model')) {
+      const modelUrl = decodeURIComponent(params.get('model'));
       mv.src = modelUrl;
       viewerBox.classList.add('active');
       btnDownload.style.display = "inline-block";
@@ -232,6 +101,4 @@
       new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
       shareArea.style.display = "block";
     }
-  </script>
-</body>
-</html>
+</script>
