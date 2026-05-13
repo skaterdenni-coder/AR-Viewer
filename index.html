@@ -4,7 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AR Model Viewer</title>
+  <!-- Model Viewer von Google für die 3D/AR Darstellung -->
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <!-- QRCode.js für die Generierung des QR-Codes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <style>
@@ -22,9 +24,10 @@
     .status{ padding: 12px; margin: 15px 0; border-radius: 12px; display: none; font-weight: 600; font-size: 14px; }
     .status.success{ display: block; background: #d4edda; color: #155724; }
     .status.loading{ display: block; background: #e1f5fe; color: #01579b; }
+    .status.error{ display: block; background: #f8d7da; color: #721c24; }
     #shareArea { display: none; margin-top: 15px; }
-    .share-flex { display: flex; align-items: center; justify-content: center; gap: 15px; background: #fdfdfd; padding: 15px; border-radius: 14px; border: 1px solid #eee; }
-    .shareLinkBox { background: #fff; border: 1px solid #ddd; padding: 10px; margin-top: 5px; border-radius: 8px; font-family: monospace; font-size: 11px; color: var(--accent); cursor: pointer; word-break: break-all; text-align: left; }
+    .share-flex { display: flex; align-items: center; justify-content: center; gap: 15px; background: #fdfdfd; padding: 15px; border-radius: 14px; border: 1px solid #eee; flex-wrap: wrap; }
+    .shareLinkBox { background: #fff; border: 1px solid #ddd; padding: 10px; margin-top: 5px; border-radius: 8px; font-family: monospace; font-size: 11px; color: var(--accent); cursor: pointer; word-break: break-all; text-align: left; max-width: 100%; }
     .viewerBox{ background:var(--card); border:1px solid var(--border); border-radius:20px; padding: 12px; display: none; }
     .viewerBox.active{ display: block; }
     model-viewer{ width: 100%; height: 50vh; min-height: 350px; background:#f8f9fa; border-radius: 16px; border: 1px solid var(--border); }
@@ -37,15 +40,20 @@
 <body>
   <div class="wrap">
     <h1>AR Viewer</h1>
+    
+    <!-- Upload Bereich -->
     <div class="card" id="uploadCard">
       <div class="uploadBox" onclick="document.getElementById('fileInput').click()">
-        <p>📁 Modell hochladen (.glb)</p>
+        <p>📁 Modell hochladen oder hierher ziehen (.glb)</p>
         <input type="file" id="fileInput" accept=".glb" style="display:none" />
       </div>
+      
       <div id="status" class="status"></div>
+      
       <div id="shareArea">
+        <p style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Teile dieses Modell (Link 24h gültig):</p>
         <div class="share-flex">
-          <div style="flex:1">
+          <div style="flex:1; min-width: 200px;">
             <div id="shareLinkDisplay" class="shareLinkBox" onclick="copyLink()"></div>
           </div>
           <div id="qrcode"></div>
@@ -53,12 +61,21 @@
       </div>
     </div>
 
+    <!-- Viewer Bereich -->
     <div class="card viewerBox" id="viewerBox">
-      <model-viewer id="mv" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" bounds="tight"></model-viewer>
+      <model-viewer id="mv" 
+        camera-controls 
+        auto-rotate 
+        ar 
+        ar-modes="webxr scene-viewer quick-look" 
+        bounds="tight" 
+        shadow-intensity="1">
+      </model-viewer>
+      
       <div class="viewerBar">
-        <button class="ui" onclick="mv.cameraOrbit = '0deg 75deg auto'">↩️ Reset</button>
-        <button class="ui" id="btnAR">📱 AR starten</button>
-        <button class="ui" id="btnDownload" style="display:none">💾 Download</button>
+        <button class="ui" onclick="mv.cameraOrbit = '0deg 75deg auto'; mv.fieldOfView = 'auto'">↩️ Reset</button>
+        <button class="ui" id="btnAR">📱 In AR ansehen</button>
+        <button class="ui" id="btnDownload" style="display:none">💾 Download .glb</button>
       </div>
     </div>
   </div>
@@ -69,7 +86,8 @@
     const qrcodeDiv = document.getElementById('qrcode');
     const shareArea = document.getElementById('shareArea');
     const shareLinkDisplay = document.getElementById('shareLinkDisplay');
-    let currentUrl = "";
+    const viewerBox = document.getElementById('viewerBox');
+    let currentShareUrl = "";
 
     function showStatus(msg, type) {
       status.textContent = msg;
@@ -77,66 +95,111 @@
       status.style.display = 'block';
     }
 
-    async function backgroundUpload(blob) {
+    // Erstellt den Share-Link und den QR-Code
+    function generateShareUI(fileUrl) {
+      // Wir nutzen 'model' als Standard-Parameter für geteilte Links
+      currentShareUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl.trim());
+      shareLinkDisplay.textContent = currentShareUrl;
+      
+      qrcodeDiv.innerHTML = "";
+      new QRCode(qrcodeDiv, { 
+        text: currentShareUrl, 
+        width: 80, 
+        height: 80,
+        correctLevel : QRCode.CorrectLevel.H 
+      });
+      
+      shareArea.style.display = "block";
+      document.getElementById('btnDownload').style.display = "inline-block";
+    }
+
+    // Litterbox Upload Logik (behält die Datei für 24h)
+    async function uploadToLitterbox(blob) {
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
       fd.append('time', '24h');
       fd.append('fileToUpload', blob, "model.glb");
+
       try {
-        const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', { method: 'POST', body: fd });
+        const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', { 
+          method: 'POST', 
+          body: fd 
+        });
         const fileUrl = await res.text();
-        if (!fileUrl.startsWith('http')) return;
-        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl.trim());
-        shareLinkDisplay.textContent = currentUrl;
-        qrcodeDiv.innerHTML = "";
-        new QRCode(qrcodeDiv, { text: currentUrl, width: 70, height: 70 });
-        shareArea.style.display = "block";
-        showStatus("✅ Modell bereit & Link erstellt!", "success");
-        document.getElementById('btnDownload').style.display = "inline-block";
-      } catch(e) { console.error(e); }
+        
+        if (fileUrl.startsWith('http')) {
+          generateShareUI(fileUrl);
+          showStatus("✅ Modell bereit & Link erstellt!", "success");
+        } else {
+          showStatus("❌ Upload fehlgeschlagen.", "error");
+        }
+      } catch(e) {
+        console.error(e);
+        showStatus("❌ Netzwerkfehler beim Upload.", "error");
+      }
     }
 
+    // Datei-Input Handler
     document.getElementById('fileInput').onchange = (e) => {
       const file = e.target.files[0];
       if (file) {
-        mv.src = URL.createObjectURL(file);
-        document.getElementById('viewerBox').classList.add('active');
-        showStatus("🚀 Modell wird geladen...", "loading");
-        backgroundUpload(file);
+        const localUrl = URL.createObjectURL(file);
+        loadModel(localUrl);
+        showStatus("🚀 Modell wird für AR vorbereitet...", "loading");
+        uploadToLitterbox(file);
       }
     };
 
+    function loadModel(url) {
+      mv.src = url;
+      viewerBox.classList.add('active');
+      viewerBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
     window.copyLink = () => {
-      navigator.clipboard.writeText(currentUrl).then(() => alert("Link kopiert!"));
+      if (!currentShareUrl) return;
+      navigator.clipboard.writeText(currentShareUrl).then(() => {
+        const originalText = shareLinkDisplay.textContent;
+        shareLinkDisplay.textContent = "Kopiert! ✅";
+        setTimeout(() => shareLinkDisplay.textContent = originalText, 2000);
+      });
     };
 
     document.getElementById('btnAR').onclick = () => mv.activateAR();
+    
     document.getElementById('btnDownload').onclick = () => {
-        const a = document.createElement('a'); a.href = mv.src; a.download = "modell.glb"; a.click();
+        const a = document.createElement('a');
+        a.href = mv.src;
+        a.download = "modell.glb";
+        a.click();
     };
 
-    const params = new URLSearchParams(window.location.search);
-    const tripo = params.get('tripo');
-    const model = params.get('model');
+    // Initialisierung beim Laden der Seite
+    window.addEventListener('load', () => {
+      const params = new URLSearchParams(window.location.search);
+      const tripoUrl = params.get('tripo');
+      const modelUrl = params.get('model');
 
-    if (tripo) {
-      // WICHTIG: Kein decodeURIComponent hier nutzen! params.get macht das schon.
-      mv.src = tripo; 
-      document.getElementById('viewerBox').classList.add('active');
-      showStatus("⚡ Blitz-Modus: Modell lädt...", "loading");
-      fetch(tripo).then(r => r.blob()).then(backgroundUpload).catch(() => {
-          showStatus("📦 Modell geladen (Vorschau-Modus)", "success");
-      });
-    } else if (model) {
-      mv.src = model;
-      document.getElementById('viewerBox').classList.add('active');
-      showStatus("📦 Modell geladen", "success");
-      currentUrl = window.location.href;
-      shareLinkDisplay.textContent = currentUrl;
-      new QRCode(qrcodeDiv, { text: currentUrl, width: 70, height: 70 });
-      shareArea.style.display = "block";
-      document.getElementById('btnDownload').style.display = "inline-block";
-    }
+      if (tripoUrl) {
+        // Fall 1: Modell kommt von Tripo (dein Link)
+        loadModel(tripoUrl);
+        showStatus("⚡ Blitz-Modus: Tripo Modell lädt...", "loading");
+        
+        // Versuche es für das Sharing zu Litterbox zu spiegeln
+        fetch(tripoUrl)
+          .then(r => r.blob())
+          .then(uploadToLitterbox)
+          .catch(() => {
+            showStatus("📦 Vorschau aktiv (Privater Link)", "success");
+          });
+
+      } else if (modelUrl) {
+        // Fall 2: Modell kommt von einem bereits generierten Litterbox Link
+        loadModel(modelUrl);
+        generateShareUI(modelUrl);
+        showStatus("📦 Modell geladen", "success");
+      }
+    });
   </script>
 </body>
 </html>
