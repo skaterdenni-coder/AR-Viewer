@@ -75,7 +75,7 @@
 <body>
   <div class="wrap">
     <h1>AR Model Viewer</h1>
-    <p id="subText">Lade dein 3D-Modell hoch oder betrachte das geteilte Modell</p>
+    <p>Lade dein 3D-Modell hoch oder betrachte das geteilte Modell</p>
 
     <div class="card" id="uploadCard">
       <div class="uploadBox" id="uploadBox">
@@ -87,7 +87,7 @@
       <div id="shareArea">
         <div class="share-flex">
           <div class="link-box">
-            <label style="font-size: 12px; font-weight: bold;">Teilen-Link (24h gültig):</label>
+            <label style="font-size: 12px; font-weight: bold;">Teilen-Link:</label>
             <div id="shareLinkDisplay" class="shareLinkBox" onclick="copyLink()"></div>
             <small>(Klicken zum Kopieren)</small>
           </div>
@@ -127,38 +127,67 @@
       status.style.display = 'block';
     }
 
+    // Erzeugt den Zeitstempel-Namen
     function getTimestampName() {
       const now = new Date();
-      return `Modell_${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}.glb`;
+      const tag = String(now.getDate()).padStart(2, '0');
+      const monat = String(now.getMonth() + 1).padStart(2, '0');
+      const stunde = String(now.getHours()).padStart(2, '0');
+      const minute = String(now.getMinutes()).padStart(2, '0');
+      return `Modell_${tag}-${monat}_${stunde}-${minute}.glb`;
     }
 
     async function triggerDownload(url) {
-      if (!url) return;
+      if (!url || url.startsWith('blob:')) {
+        alert("Download erst nach Cloud-Upload verfügbar.");
+        return;
+      }
+      
       const fileName = getTimestampName();
+      
       try {
         const response = await fetch(url);
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
+        
         const a = document.createElement('a');
-        a.href = blobUrl; a.download = fileName;
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
-      } catch (e) { window.open(url, '_blank'); }
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } catch (e) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.target = "_blank";
+        a.click();
+      }
     }
 
-    // Zentrale Funktion zum Hochladen eines Blobs zu Litterbox
-    async function uploadBlobToLitterbox(blob) {
+    uploadBox.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); };
+
+    async function handleUpload(file) {
+      if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
+      
+      mv.src = URL.createObjectURL(file);
+      viewerBox.classList.add('active');
+      showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
+      shareArea.style.display = "none";
+      btnDownload.style.display = "none";
+
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
       fd.append('time', '24h');
-      fd.append('fileToUpload', blob, "model.glb");
+      fd.append('fileToUpload', file);
 
       try {
         const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', { method: 'POST', body: fd });
         const fileUrl = await res.text();
         if (!fileUrl.startsWith('http')) throw new Error();
 
-        // Neuen permanenten Link generieren
         currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
         
         shareLinkDisplay.textContent = currentUrl;
@@ -166,26 +195,14 @@
         new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
         
         shareArea.style.display = "block";
-        showStatus("Link erstellt!", "success");
+        showStatus("✅ Modell bereit & Link erstellt!", "success");
         
-        // Model-Viewer auf die neue URL umstellen (Cache-Vorteil)
         mv.src = fileUrl;
         btnDownload.style.display = "inline-block";
       } catch(e) {
-        showStatus("⚠️ Modell geladen, aber Cloud-Link konnte nicht erstellt werden.", "loading");
+        showStatus("❌ Nur lokale Ansicht (Cloud-Upload fehlgeschlagen)", "loading");
       }
     }
-
-    uploadBox.onclick = () => fileInput.click();
-    fileInput.onchange = (e) => { 
-      if (e.target.files[0]) {
-        const file = e.target.files[0];
-        mv.src = URL.createObjectURL(file);
-        viewerBox.classList.add('active');
-        showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
-        uploadBlobToLitterbox(file);
-      }
-    };
 
     window.copyLink = () => {
       navigator.clipboard.writeText(currentUrl).then(() => alert("Link kopiert!"));
@@ -196,36 +213,13 @@
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
     btnDownload.onclick = () => triggerDownload(mv.src);
 
-    // --- Logik beim Laden der Seite ---
     const params = new URLSearchParams(window.location.search);
-    
-    // FALL 1: Tripo-Link kommt direkt aus der App (Parameter ?tripo=...)
-    if (params.get('tripo')) {
-      const tripoUrl = params.get('tripo');
-      console.log("Direkt-Laden von Tripo:", tripoUrl);
-      
-      mv.src = tripoUrl;
-      viewerBox.classList.add('active');
-      showStatus("⚡ Blitz-Modus: Modell wird geladen...", "loading");
-
-      // Im Hintergrund von Tripo laden und zu Litterbox schieben
-      fetch(tripoUrl)
-        .then(res => res.blob())
-        .then(blob => {
-          showStatus("🔄 Modell geladen. Erstelle  Link...", "loading");
-          uploadBlobToLitterbox(blob);
-        })
-        .catch(err => {
-          showStatus("❌ Fehler beim Laden des Tripo-Modells.", "loading");
-        });
-    } 
-    // FALL 2: Klassischer Litterbox-Link (Parameter ?model=...)
-    else if (params.get('model')) {
+    if (params.get('model')) {
       const modelUrl = params.get('model');
       mv.src = modelUrl;
       viewerBox.classList.add('active');
       btnDownload.style.display = "inline-block";
-      showStatus("📦 Modell geladen", "success");
+      showStatus("📦 Geteiltes Modell geladen", "success");
       
       currentUrl = window.location.href;
       shareLinkDisplay.textContent = currentUrl;
