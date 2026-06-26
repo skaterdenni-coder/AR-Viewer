@@ -98,6 +98,7 @@
 
     <div class="card viewerBox" id="viewerBox">
       <model-viewer id="mv" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" bounds="tight" autoplay></model-viewer>
+      
       <div class="viewerBar">
         <button class="ui" id="btnReset">↩️ Reset</button>
         <button class="ui" id="btnToggleAnim">⏸ Animation Stoppen</button>
@@ -171,6 +172,17 @@
     uploadBox.onclick = () => fileInput.click();
     fileInput.onchange = (e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); };
 
+    // Event-Listener: Sobald das Modell (lokal oder aus der Cloud) geladen ist,
+    // wird die erste enthaltene Animation gesucht und gestartet.
+    mv.addEventListener('load', () => {
+      const availableAnimations = mv.availableAnimations;
+      if (availableAnimations && availableAnimations.length > 0) {
+        mv.animationName = availableAnimations[0];
+        mv.play();
+        btnToggleAnim.innerHTML = "⏸ Animation Stoppen";
+      }
+    });
+
     async function handleUpload(file) {
       if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
       
@@ -179,7 +191,6 @@
       showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
       shareArea.style.display = "none";
       btnDownload.style.display = "none";
-      btnToggleAnim.innerHTML = "⏸ Animation Stoppen"; // Reset Button Text
 
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
@@ -200,15 +211,14 @@
         shareArea.style.display = "block";
         showStatus("✅ Modell bereit & Link erstellt!", "success");
         
-        mv.src = fileUrl;
-        mv.play(); // Verhindert Stoppen beim URL-Wechsel
+        mv.src = fileUrl; // Tauscht die Quelle gegen den Cloud-Link (löst erneut 'load' aus)
         btnDownload.style.display = "inline-block";
       } catch(e) {
         showStatus("❌ Nur lokale Ansicht (Cloud-Upload fehlgeschlagen)", "loading");
       }
     }
 
-    // Logik für den Start/Stopp-Button
+    // Interaktive Start/Stopp-Logik für den Button
     btnToggleAnim.onclick = () => {
       if (mv.paused) {
         mv.play();
@@ -228,6 +238,7 @@
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
     btnDownload.onclick = () => triggerDownload(mv.src);
 
+    // Initialer Check, ob ein geteiltes Modell über die URL aufgerufen wurde
     const params = new URLSearchParams(window.location.search);
     if (params.get('model')) {
       const modelUrl = params.get('model');
