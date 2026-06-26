@@ -69,6 +69,9 @@
       display: flex; align-items: center; gap: 5px;
     }
     button.ui:hover { background: #f0f0f0; }
+
+    /* Animation-Button standardmäßig ausblenden */
+    #btnToggleAnim { display: none; }
   </style>
 </head>
 
@@ -179,7 +182,10 @@
       showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
       shareArea.style.display = "none";
       btnDownload.style.display = "none";
-      btnToggleAnim.innerHTML = "⏸ Animation Stoppen"; // Reset Button Text
+      
+      // Button zurücksetzen und verstecken, bis das neue Modell geladen ist
+      btnToggleAnim.innerHTML = "⏸ Animation Stoppen"; 
+      btnToggleAnim.style.display = "none";
 
       const fd = new FormData();
       fd.append('reqtype', 'fileupload');
@@ -208,6 +214,15 @@
       }
     }
 
+    // Prüfen, ob das geladene Modell Animationen besitzt
+    mv.addEventListener('load', () => {
+      if (mv.availableAnimations && mv.availableAnimations.length > 0) {
+        btnToggleAnim.style.display = "inline-flex";
+      } else {
+        btnToggleAnim.style.display = "none";
+      }
+    });
+
     // Logik für den Start/Stopp-Button
     btnToggleAnim.onclick = () => {
       if (mv.paused) {
@@ -223,7 +238,12 @@
       navigator.clipboard.writeText(currentUrl).then(() => alert("Link kopiert!"));
     };
 
-    document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; };
+    // Reset-Button: Kamera zurücksetzen UND Animation an den Anfang spulen
+    document.getElementById('btnReset').onclick = () => { 
+      mv.cameraOrbit = '0deg 75deg auto'; 
+      mv.currentTime = 0;
+    };
+    
     document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
     btnDownload.onclick = () => triggerDownload(mv.src);
