@@ -1,4 +1,4 @@
-# AR Model Viewer 🚀
+# AR Model Viewer 
 
 Eine erweiterte und optimierte Abwandlung der AR-Demo von [edoardomignano](https://github.com/edoardomignano/ar-demo). Diese Version wurde um eine cloudbasierte Upload-Infrastruktur, automatisierte QR-Code-Generierung und eine intelligente Empfänger-Landingpage für Direkt-Downloads erweitert.
 
@@ -6,7 +6,7 @@ Ein leichtgewichtiger, webbasierter 3D-Modell-Viewer mit Augmented Reality (AR) 
 
 ---
 
-## ✨ Features
+## Features
 
 * **3D Viewer:** Interaktive Ansicht von Modellen (Rotation, Zoom, Fullscreen).
 * **AR-Modus:** Betrachte Modelle in deiner echten Umgebung (unterstützt WebXR, Scene-Viewer und Quick-Look).
@@ -17,7 +17,7 @@ Ein leichtgewichtiger, webbasierter 3D-Modell-Viewer mit Augmented Reality (AR) 
 
 ---
 
-## 🛠️ Technologien
+## Technologien
 
 * **Frontend:** HTML5, CSS3, JavaScript (ES6+).
 * **3D Rendering:** Google Model-Viewer.
@@ -25,7 +25,7 @@ Ein leichtgewichtiger, webbasierter 3D-Modell-Viewer mit Augmented Reality (AR) 
 
 ---
 
-## 🚀 Installation & Nutzung
+## Installation & Nutzung
 
 Da es sich um eine reine Client-seitige HTML-Datei handelt, ist keine Installation notwendig:
 
