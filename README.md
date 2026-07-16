@@ -16,7 +16,7 @@ Ein webbasierter 3D-Modell-Viewer, der es ermöglicht, ganze Ordner mit .glb-Dat
 * **Responsive Design:** Optimiert für Desktop und mobile Endgeräte.
 
 ---
-Aufruf: https://skaterdenni-coder.github.io/Model_Viewer_Folder/ 
+Aufruf: https://skaterdenni-coder.github.io/AR-Viewer/  
 ## Technologien
 
 * **Framework:** Google Model Viewer
@@ -57,6 +57,6 @@ Da es sich um eine reine Client-seitige HTML-Datei handelt, ist keine Installati
 * **Nutzung:** Dieses Projekt ist für Testzwecke und Präsentationen optimiert. Beachte, dass hochgeladene Dateien über den Externen Dienst öffentlich (via Link) zugänglich sind.
 
 
-Aufruf: https://skaterdenni-coder.github.io/AR-Viewer/ 
+
 ---
 
