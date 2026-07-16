@@ -8,78 +8,102 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <style>
-    :root{
-      --bg:#f5f6f7; --text:#111; --muted:#555; --card:#fff; --border:#e6e6e6;
-      --btn2:#2d7d46;
+    :root {
+      --bg: #f5f6f7; 
+      --text: #111; 
+      --muted: #555; 
+      --card: #fff; 
+      --border: #e6e6e6;
+      --btn2: #2d7d46;
+      --viewer-bg: #ffffff;
     }
+
+    body.dark-mode {
+      --bg: #1a1a1a; 
+      --text: #e0e0e0; 
+      --muted: #aaa; 
+      --card: #2d2d2d; 
+      --border: #444; 
+      --btn2: #4caf50;
+      --viewer-bg: #222222;
+    }
+
+    body.offwhite-mode {
+      --bg: #efebe2;    
+      --card: #fdfcf8;  
+      --border: #dcd7ca;
+      --text: #4a4539; 
+      --muted: #7a7569; 
+      --btn2: #8b7355;
+      --viewer-bg: #efebe2;
+    }
+
     * { box-sizing: border-box; }
-    body{ margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
-    .wrap{ max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
-    h1{ margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
+    body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); transition: background 0.3s, color 0.3s; }
     
-    .card{
+    .wrap { max-width: 980px; margin: 0 auto; padding: 26px 16px 42px; text-align:center; }
+    
+    .theme-toggle {
+      position: fixed; top: 20px; right: 20px; z-index: 100;
+      background: var(--card); border: 1px solid var(--border); 
+      color: var(--text); padding: 10px 15px; border-radius: 20px; 
+      cursor: pointer; font-weight: bold;
+    }
+
+    h1 { margin: 6px 0 10px; font-size: 34px; font-weight: 800; }
+    
+    .card {
       background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 20px; margin: 14px auto;
-      box-shadow: 0 1px 0 rgba(0,0,0,.03);
+      padding: 20px; margin: 14px auto; box-shadow: 0 1px 0 rgba(0,0,0,.03);
     }
     
-    .uploadBox{
-      background: #f0f8f4; border: 2px dashed var(--btn2);
+    .uploadBox {
+      background: var(--bg); border: 2px dashed var(--btn2);
       border-radius: 12px; padding: 40px 20px; text-align: center;
-      cursor: pointer; transition: all 0.3s;
+      cursor: pointer;
     }
-    .uploadBox p{ margin: 0; color: var(--muted); font-size: 16px; }
+
+    .uploadBox p { margin: 0; color: var(--muted); font-size: 16px; }
     .uploadBox input{ display: none; }
     
-    .status{
-      padding: 12px; margin: 10px 0; border-radius: 6px;
-      display: none; font-weight: 600; text-align: center;
-    }
-    .status.success{ display: block; background: #d4edda; color: #155724; }
-    .status.loading{ display: block; background: #d1ecf1; color: #0c5460; }
+    .status { padding: 12px; margin: 10px 0; border-radius: 6px; display: none; font-weight: 600; text-align: center; }
+    .status.success { background: #d4edda; color: #155724; }
+    .status.loading { background: #d1ecf1; color: #0c5460; }
 
     #shareArea { display: none; margin-top: 15px; }
     .share-flex { 
       display: flex; align-items: center; justify-content: center; 
-      gap: 20px; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee;
+      gap: 20px; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 10px; border: 1px solid var(--border);
     }
     .link-box { flex: 1; text-align: left; }
     .shareLinkBox {
-      background: #fff; border: 1px solid #ccc; padding: 10px;
+      background: var(--bg); border: 1px solid var(--border); padding: 10px;
       margin-top: 5px; border-radius: 8px; font-family: monospace;
-      font-size: 12px; color: #004a99; cursor: pointer; word-break: break-all;
+      font-size: 12px; color: var(--btn2); cursor: pointer; word-break: break-all;
     }
-    #qrcode img { border: 4px solid #fff; border-radius: 4px; }
 
-    .viewerBox{
-      background:var(--card); border:1px solid var(--border); border-radius:14px;
-      padding: 12px; margin-top: 18px; display: none;
-    }
-    .viewerBox.active{ display: block; }
+    .viewerBox { background:var(--card); border:1px solid var(--border); border-radius:14px; padding: 12px; margin-top: 18px; display: none; }
+    .viewerBox.active { display: block; }
     
-    model-viewer{
+    model-viewer {
       width: 100%; height: 60vh; min-height: 380px;
-      background:#fff; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--viewer-bg); border-radius: 12px; border: 1px solid var(--border);
     }
     
-    .viewerBar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin: 12px 0 0; }
-    button.ui{
-      border:1px solid var(--border); background:#fff; color:#111;
+    .viewerBar { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin: 12px 0 0; }
+    button.ui {
+      border:1px solid var(--border); background:var(--card); color:var(--text);
       border-radius: 10px; padding: 10px 12px; font-weight: 700; cursor:pointer;
-      display: flex; align-items: center; gap: 5px;
     }
-    button.ui:hover { background: #f0f0f0; }
-
-    /* Animation-Button standardmäßig ausblenden */
-    #btnToggleAnim { display: none; }
   </style>
 </head>
 
 <body>
+  <button class="theme-toggle" id="themeToggle">🌓 Theme</button>
+  
   <div class="wrap">
     <h1>AR Model Viewer</h1>
-    <p>Lade dein 3D-Modell hoch oder betrachte das geteilte Modell</p>
-
+    
     <div class="card" id="uploadCard">
       <div class="uploadBox" id="uploadBox">
         <p>📁 Neues Modell hochladen (.glb)</p>
@@ -92,7 +116,6 @@
           <div class="link-box">
             <label style="font-size: 12px; font-weight: bold;">Teilen-Link:</label>
             <div id="shareLinkDisplay" class="shareLinkBox" onclick="copyLink()"></div>
-            <small>(Klicken zum Kopieren)</small>
           </div>
           <div id="qrcode"></div>
         </div>
@@ -103,163 +126,45 @@
       <model-viewer id="mv" camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look" bounds="tight" autoplay></model-viewer>
       <div class="viewerBar">
         <button class="ui" id="btnReset">↩️ Reset</button>
-        <button class="ui" id="btnToggleAnim">⏸ Animation Stoppen</button>
         <button class="ui" id="btnFullscreen">⛶ Vollbild</button>
         <button class="ui" id="btnAR">AR starten</button>
-        <button class="ui" id="btnDownload" style="display:none;">💾 Download .glb</button>
       </div>
-      <p style="font-size: 11px; margin-top: 15px; color: #888;">Created by Dennis Werner 2026</p>
     </div>
   </div>
 
   <script>
+    // Theme Umschalter Logik
+    const btn = document.getElementById('themeToggle');
+    const b = document.body;
+    let mode = 0; // 0: Standard, 1: Dark, 2: Offwhite
+
+    btn.onclick = () => {
+      b.classList.remove('dark-mode', 'offwhite-mode');
+      mode = (mode + 1) % 3;
+      if(mode === 1) b.classList.add('dark-mode');
+      if(mode === 2) b.classList.add('offwhite-mode');
+    };
+
+    // Upload & Viewer Logik
     const mv = document.getElementById('mv');
-    const viewerBox = document.getElementById('viewerBox');
-    const status = document.getElementById('status');
     const fileInput = document.getElementById('fileInput');
-    const uploadBox = document.getElementById('uploadBox');
-    const shareArea = document.getElementById('shareArea');
-    const shareLinkDisplay = document.getElementById('shareLinkDisplay');
-    const qrcodeDiv = document.getElementById('qrcode');
-    const btnDownload = document.getElementById('btnDownload');
-    const btnToggleAnim = document.getElementById('btnToggleAnim');
-
-    let currentUrl = "";
-
-    function showStatus(msg, type) {
-      status.textContent = msg;
-      status.className = `status ${type}`;
-      status.style.display = 'block';
-    }
-
-    // Erzeugt den Zeitstempel-Namen
-    function getTimestampName() {
-      const now = new Date();
-      const tag = String(now.getDate()).padStart(2, '0');
-      const monat = String(now.getMonth() + 1).padStart(2, '0');
-      const stunde = String(now.getHours()).padStart(2, '0');
-      const minute = String(now.getMinutes()).padStart(2, '0');
-      return `Modell_${tag}-${monat}_${stunde}-${minute}.glb`;
-    }
-
-    async function triggerDownload(url) {
-      if (!url || url.startsWith('blob:')) {
-        alert("Download erst nach Cloud-Upload verfügbar.");
-        return;
-      }
-      
-      const fileName = getTimestampName();
-      
-      try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } catch (e) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.target = "_blank";
-        a.click();
-      }
-    }
-
-    uploadBox.onclick = () => fileInput.click();
-    fileInput.onchange = (e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); };
-
-    async function handleUpload(file) {
-      if (!file.name.endsWith('.glb')) return alert("Nur .glb!");
-      
-      mv.src = URL.createObjectURL(file);
-      viewerBox.classList.add('active');
-      showStatus("🚀 Modell geladen. Cloud-Upload läuft...", "loading");
-      shareArea.style.display = "none";
-      btnDownload.style.display = "none";
-      
-      // Button zurücksetzen und verstecken, bis das neue Modell geladen ist
-      btnToggleAnim.innerHTML = "⏸ Animation Stoppen"; 
-      btnToggleAnim.style.display = "none";
-
-      const fd = new FormData();
-      fd.append('reqtype', 'fileupload');
-      fd.append('time', '24h');
-      fd.append('fileToUpload', file);
-
-      try {
-        const res = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', { method: 'POST', body: fd });
-        const fileUrl = await res.text();
-        if (!fileUrl.startsWith('http')) throw new Error();
-
-        currentUrl = window.location.origin + window.location.pathname + '?model=' + encodeURIComponent(fileUrl);
-        
-        shareLinkDisplay.textContent = currentUrl;
-        qrcodeDiv.innerHTML = "";
-        new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
-        
-        shareArea.style.display = "block";
-        showStatus("✅ Modell bereit & Link erstellt!", "success");
-        
-        mv.src = fileUrl;
-        mv.play(); // Verhindert Stoppen beim URL-Wechsel
-        btnDownload.style.display = "inline-block";
-      } catch(e) {
-        showStatus("❌ Nur lokale Ansicht (Cloud-Upload fehlgeschlagen)", "loading");
-      }
-    }
-
-    // Prüfen, ob das geladene Modell Animationen besitzt
-    mv.addEventListener('load', () => {
-      if (mv.availableAnimations && mv.availableAnimations.length > 0) {
-        btnToggleAnim.style.display = "inline-flex";
-      } else {
-        btnToggleAnim.style.display = "none";
-      }
-    });
-
-    // Logik für den Start/Stopp-Button
-    btnToggleAnim.onclick = () => {
-      if (mv.paused) {
-        mv.play();
-        btnToggleAnim.innerHTML = "⏸ Animation Stoppen";
-      } else {
-        mv.pause();
-        btnToggleAnim.innerHTML = "▶ Animation Starten";
-      }
-    };
-
-    window.copyLink = () => {
-      navigator.clipboard.writeText(currentUrl).then(() => alert("Link kopiert!"));
-    };
-
-    // Reset-Button: Kamera zurücksetzen UND Animation an den Anfang spulen
-    document.getElementById('btnReset').onclick = () => { 
-      mv.cameraOrbit = '0deg 75deg auto'; 
-      mv.currentTime = 0;
-    };
     
+    document.getElementById('uploadBox').onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+        if (e.target.files[0]) {
+            mv.src = URL.createObjectURL(e.target.files[0]);
+            document.getElementById('viewerBox').classList.add('active');
+        }
+    };
+
+    document.getElementById('btnReset').onclick = () => { mv.cameraOrbit = '0deg 75deg auto'; mv.currentTime = 0; };
     document.getElementById('btnFullscreen').onclick = () => { mv.requestFullscreen(); };
     document.getElementById('btnAR').onclick = () => { mv.activateAR(); };
-    btnDownload.onclick = () => triggerDownload(mv.src);
-
+    
     const params = new URLSearchParams(window.location.search);
     if (params.get('model')) {
-      const modelUrl = params.get('model');
-      mv.src = modelUrl;
-      viewerBox.classList.add('active');
-      btnDownload.style.display = "inline-block";
-      showStatus("📦 Geteiltes Modell geladen", "success");
-      
-      currentUrl = window.location.href;
-      shareLinkDisplay.textContent = currentUrl;
-      new QRCode(qrcodeDiv, { text: currentUrl, width: 80, height: 80 });
-      shareArea.style.display = "block";
+        mv.src = params.get('model');
+        document.getElementById('viewerBox').classList.add('active');
     }
   </script>
 </body>
