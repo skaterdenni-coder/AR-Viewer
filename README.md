@@ -21,7 +21,7 @@ Ein leichtgewichtiger, webbasierter 3D-Modell-Viewer mit Augmented Reality (AR) 
 
 * **Frontend:** HTML5, CSS3, JavaScript (ES6+).
 * **3D Rendering:** Google Model-Viewer.
-* **Hosting/API:** Litterbox für temporäres Asset-Hosting.
+* **Hosting/API:** Externer Dienst für temporäres Asset-Hosting.
 
 ---
 
