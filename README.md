@@ -29,6 +29,4 @@ Ein leichtgewichtiger, webbasierter 3D-Modell-Viewer mit Augmented Reality (AR) 
 
 Da es sich um eine reine Client-seitige HTML-Datei handelt, ist keine Installation notwendig:
 
-1. **Klone das Repository:**
-   ```bash
-   git clone [https://github.com/DEIN-BENUTZERNAME/ar-model-viewer.git](https://github.com/DEIN-BENUTZERNAME/ar-model-viewer.git)
+
