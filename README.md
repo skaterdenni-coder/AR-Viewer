@@ -2,7 +2,7 @@
 
 Eine erweiterte und optimierte Abwandlung der AR-Demo von [edoardomignano](https://github.com/edoardomignano/ar-demo). Diese Version wurde um eine cloudbasierte Upload-Infrastruktur, automatisierte QR-Code-Generierung und eine intelligente Empfänger-Landingpage für Direkt-Downloads erweitert.
 
-Ein webbasierter 3D-Modell-Viewer, der es ermöglicht, ganze Ordner mit .glb-Dateien zu laden, sie im Browser zu betrachten und per Cloud-Link für Augmented Reality (AR) zu teilen.
+Ein webbasierter 3D-Modell-Viewer, der es ermöglicht .glb-Dateien zu laden, sie im Browser zu betrachten und per Cloud-Link für Augmented Reality (AR) zu teilen.
 
 ---
 
